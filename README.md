@@ -1,4 +1,3 @@
-```markdown
 
 # Whistles Recognition System (WRS) Model Testing
 
