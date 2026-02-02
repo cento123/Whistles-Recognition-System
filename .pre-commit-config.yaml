@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0  # Use the latest version available
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0  # Use the latest version available
+    hooks:
+      - id: black
+        language_version: python3  # Specify the Python version to use
+
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.10.1  # Update to the latest version
+    hooks:
+      - id: isort
+        args: ['--profile', 'black']
+
+  - repo: https://github.com/myint/autoflake
+    rev: v2.3.1  # Use the latest version available
+    hooks:
+      - id: autoflake
+        args: ['--remove-all-unused-imports', '--remove-unused-variables', '--in-place', '--recursive', '.']
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0  # Use the latest version available
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports']
