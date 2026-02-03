@@ -18,6 +18,10 @@ detection results.
 
 ## Requirements
 
+```bash
+Python >= python3.10
+```
+
 Install dependencies using pip:
 
 ```bash
