@@ -129,8 +129,8 @@ def paint_results(results: DetMetrics, save_path: str = "../results") -> None:
                 )
 
         base_name = os.path.basename(image_path)
-        save_path = os.path.join(save_path, base_name)
-        cv2.imwrite(save_path, img)
+        output_path = os.path.join(save_path, base_name)
+        cv2.imwrite(output_path, img)
 
 
 def save_jsons(results: DetMetrics, save_path: str = "../results") -> None:

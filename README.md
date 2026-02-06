@@ -18,8 +18,13 @@ detection results.
 
 ## Requirements
 
+Python 3.10 or higher is required. It is recommended to use a virtual environment to manage dependencies.
 ```bash
 Python >= python3.10
+
+python3.X -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install --upgrade pip
 ```
 
 Install dependencies using pip:
