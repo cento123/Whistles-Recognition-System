@@ -50,8 +50,8 @@ argparser.add_argument(
 def test_model(
     model_path: str,
     data_path: str,
-    conf: float = 0.25,
-    iou: float = 0.45,
+    conf: float = 0.50,
+    iou: float = 0.25,
     batch_size: int = 16,
     device: str = "cpu",
 ) -> DetMetrics:
