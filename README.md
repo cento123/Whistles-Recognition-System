@@ -43,8 +43,8 @@ python src/test.py --model <path_to_model.pt> --data <path_to_test_images> --out
 
 ### Optional Arguments
 
-- `--conf`: Confidence threshold (default: 0.25)
-- `--iou`: IoU threshold for NMS (default: 0.45)
+- `--conf`: Confidence threshold (default: 0.50)
+- `--iou`: IoU threshold for NMS (default: 0.25)
 - `--batch_size`: Batch size for testing (default: 16)
 - `--device`: Device to run the model (`cpu` or `cuda`, default: `cpu`)
 
