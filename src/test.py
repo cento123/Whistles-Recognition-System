@@ -14,7 +14,7 @@ from ultralytics.utils.metrics import DetMetrics
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
-loger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 """
 Set up argument parser
@@ -68,7 +68,7 @@ def test_model(
         results: list of Detection results from the model.
     """
 
-    loger.info(
+    logger.info(
         f"Testing model: {model_path} on data: {data_path} with conf: {conf}, iou: {iou}, batch_size: {batch_size}, device: {device}"
     )
     # Load the YOLO model
@@ -95,7 +95,7 @@ def paint_results(results: DetMetrics, save_path: str = "../results") -> None:
         save_path (str): Directory to save the painted images.
     """
 
-    loger.info(f"Painting results and saving to: {save_path}")
+    logger.info(f"Painting results and saving to: {save_path}")
 
     # Create the save directory if it doesn't exist
     os.makedirs(save_path, exist_ok=True)
@@ -141,7 +141,7 @@ def save_jsons(results: DetMetrics, save_path: str = "../results") -> None:
         save_path (str): Path to save the json results files.
     """
 
-    loger.info(f"Saving results to json files in: {save_path}")
+    logger.info(f"Saving results to json files in: {save_path}")
 
     for result in results:
         json_path = os.path.join(
