@@ -8,8 +8,10 @@
 # Libraries:
 import argparse
 import logging
+import sys
 import os
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from whistles_recognition_system.functions import test_model, paint_results, save_jsons, filesListCreator
 
 script_name = "WRSapplication_v1"
@@ -27,7 +29,7 @@ argparser = argparse.ArgumentParser(
         "It generates visualizations and JSON files for each processed image.\n"
         "Requires the 'test.py' file to be in the same folder as this script.\n"
         "Example usage:\n"
-        "  python WRSapplication_v1.py --data_folder ./data --output_results ./results --model ../models/best_exp20.pt"
+        "  python ./scripts/WRSapplication_v1.py --model ../models/best_exp20.pt --data_folder ./data --output_results ./results"
     ),
     formatter_class=argparse.RawTextHelpFormatter
 )

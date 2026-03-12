@@ -212,8 +212,9 @@ def calcHist(data, BinRes, prob=False, Ythreshold=None):
     return Yvalue, Nbins, nTh, thVal
 
 # %% saveHist function:
-def saveHist(Yvalue, Nbins, FontSize, Nwhistles, Xlabel_str, output_results, FileName_output):
+def saveHist(Yvalue, Nbins, FontSize, title_str, Xlabel_str, output_results, HistName):
     # Compute mean and std for Gaussian overlay
+    BinRes = Nbins[1]-Nbins[0]
     mu = np.sum(Yvalue * Nbins) / np.sum(Yvalue) if np.sum(Yvalue) > 0 else 0
     variance = np.sum(Yvalue * (Nbins - mu)**2) / np.sum(Yvalue) if np.sum(Yvalue) > 0 else 0
     sigma = np.sqrt(variance)
@@ -227,7 +228,7 @@ def saveHist(Yvalue, Nbins, FontSize, Nwhistles, Xlabel_str, output_results, Fil
     plt.ylabel('Samples [%]', fontsize=FontSize)
     plt.xticks(rotation=35)
     plt.legend(loc='upper right', ncol=1, fontsize=FontSize-2)
-    plt.title(f"{Nwhistles} whistles\n{col}", fontsize=FontSize)
+    plt.title(title_str, fontsize=FontSize)
     nonzero_idx = np.where(Yvalue != 0)[0]
     if len(nonzero_idx) > 0:
         plt.xlim(Nbins[nonzero_idx[0]] - BinRes/2,
@@ -235,7 +236,7 @@ def saveHist(Yvalue, Nbins, FontSize, Nwhistles, Xlabel_str, output_results, Fil
     plt.tick_params(axis='both', which='major', labelsize=FontSize)
     plt.tick_params(axis='both', which='minor', labelsize=FontSize)
     plt.tight_layout()
-    png_file = os.path.join(output_results, f"{FileName_output}_{col}.png")
+    png_file = os.path.join(output_results, f"{HistName}.png")
     plt.savefig(png_file, dpi=300)
     plt.close()
     return None

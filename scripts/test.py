@@ -7,7 +7,10 @@ Script to test a YOLO model using the ultralytics library and Whistles Recogniti
 
 import argparse
 import logging
+import sys
+import os
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from whistles_recognition_system.functions import test_model, paint_results, save_jsons
 
 # Set up logging
