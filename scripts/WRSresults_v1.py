@@ -1,0 +1,153 @@
+"""
+# Created on Tue Mar 10 2026 18:56:32 UTC
+
+@author: ddietor
+
+"""
+# %% Imports
+# Libraries:
+import os
+import argparse
+import json
+import logging
+import pandas as pd
+import datetime as dt
+
+# External parameters:
+from whistles_recognition_system.functions import filesListCreator, GetItemParams, calcHist, saveHist, saveWRSreults
+from whistles_recognition_system.config import Tpx, Fpx, Fpx_0, Npxs
+
+script_name = "WRSresults_v1"
+# %% Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+"""
+Set up argument parser
+"""
+argparser = argparse.ArgumentParser(
+    description="Script to analyze WRS results from the outpu JSON files.\n"
+                "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
+                "Example usage:\n"
+                "  python WRSresults_v1.py --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
+    formatter_class=argparse.RawTextHelpFormatter
+)
+
+argparser.add_argument(
+    "--data_folder",
+    type=str,
+    required=True,
+    help="Folder to search for the JSON files (mandatory)."
+)
+argparser.add_argument(
+    "--output_results",
+    type=str,
+    default=".",
+    help="Folder to store analysis results (default: current folder)."
+)
+argparser.add_argument(
+    "--output_hist",
+    action="store_true",
+    help="If set, saves histograms for each calculated parameter (default: False)."
+)
+argparser.add_argument(
+    "--output_name",
+    type=str,
+    default=script_name,
+    help=f"Base name for output files (CSV, plots). Default: '{script_name}'."
+)
+argparser.add_argument(
+    "--verbose",
+    action="store_true",
+    help="Enable verbose logging."
+)
+
+# -----------------------------
+# Parse arguments
+# -----------------------------
+args = argparser.parse_args()
+
+# Set logging level based on verbose flag
+if args.verbose:
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Verbose logging enabled.")
+else:
+    logger.setLevel(logging.INFO)
+
+logger.warning(
+    "\n" + "="*50 +
+    "This is the setup in config.py:\n"
+    f"Tpx = {Tpx}\n"
+    f"Fpx = {Fpx}\n"
+    f"Fpx_0 = {Fpx_0}\n"
+    f"Npxs = {Npxs}\n"
+    + "="*50
+)
+# %% Program execution:
+if __name__ == "__main__":
+    args = argparser.parse_args()
+    data_path = args.data_folder
+    output_results = args.output_results
+    FileName_output = args.output_name
+    PltHist_flag = args.output_hist
+    # print(f"Executing {script_name}...")
+    jsons = filesListCreator(data_path,filesList_extension='.json')
+    jsons.sort()
+    # print(f"There are {len(jsons)}")
+    Results_df = []
+    Results_df_columns = ['FileName','Wid','Conf','Tini','Tdur','Fmin','Fmax']
+    W_id = -1
+    for json_file in jsons: 
+        # Read JSON
+        with open(json_file, "r") as f:
+            data = json.load(f)
+        # Check if empty
+        if data:
+            data.sort(key=lambda item: item["bbox"]["xmin"])
+            for item in data:
+                if item.get("class") == "w":
+                    W_id += 1
+                    Conf, Tini, Tdur, Fmin, Fmax = GetItemParams(item,Tpx,Fpx,Fpx_0,Npxs)
+                    row_data = [os.path.basename(json_file),W_id,Conf,Tini,Tdur,Fmin,Fmax]
+                    Results_df.append(row_data)
+    Results_df = pd.DataFrame(data=Results_df, columns = Results_df_columns)
+    Results_df['Fdur'] = Results_df['Fmax'] - Results_df['Fmin']
+
+    # Histograms of data:
+    FontSize = 16
+    if PltHist_flag:
+        not_plot_cols = ['FileName','Wid','Conf','Tini']
+        for col in Results_df.columns:
+            if col not in not_plot_cols:
+                data2hist = Results_df[col]
+                if 'F' in col:
+                    data2hist = data2hist*1e-3
+                    BinRes = 0.5
+                    Xlabel_str = 'Frequency [kHz]'
+                elif 'T' in col:
+                    data2hist = data2hist
+                    BinRes = 0.05
+                    Xlabel_str = 'Time [s]'
+                Yvalue, Nbins, nTh, thVal = calcHist(data2hist, BinRes, prob=True)
+                saveHist(Yvalue, Nbins, FontSize, len(Results_df), Xlabel_str, output_results, FileName_output)
+                
+    # Output data saved as csv
+    print(f"{len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles, stored in {FileName_output}")
+    metadata = [
+        "# ----------------------------------------"
+        f"# {len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles",
+        f"# Creation: {dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")} by {script_name}",
+        f"# Images config: Tpx={Tpx}s, Fpx={Fpx}Hz, Fpx_0={Fpx_0}Hz, Npxs={Npxs}",
+        "# ----------------------------------------"
+    ]
+    with open(os.path.join(output_results,FileName_output+'.csv'), 'w', encoding='utf-8') as f:
+        # Metadata:
+        for line in metadata:
+            f.write(line + "\n")
+        # Data:
+        Results_df.to_csv(f, sep=";", index=False)
+
+    # Output data saved as Boxplot:
+    saveWRSreults(Results_df, FontSize, output_results, FileName_output)
+
+    # print(f"...{script_name} finalize!")
