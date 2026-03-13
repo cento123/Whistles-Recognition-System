@@ -4,7 +4,7 @@
 This project provides scripts to test a WRS model described in the paper:
 'Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms'
 
-Avaria-Avaria, V., Diego-Tortosa, D., Gallardo, C., Morell-Monzó, S., & Quiroz-Rangel, C. A. (2026). *Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms*. Bioacoustics, 1–27. https://doi.org/10.1080/09524622.2025.2612276
+Avaria-Avaria, V.; Diego-Tortosa, D.; Gallardo, C.; Morell-Monzó, S.; & Quiroz-Rangel, C. A. (2026). *Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms*. Bioacoustics, 35(2), 148–174. https://doi.org/10.1080/09524622.2025.2612276
 
 If you use this repository in a research, a citation to this article would be appreciated.
 
