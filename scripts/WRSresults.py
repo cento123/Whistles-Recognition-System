@@ -9,16 +9,15 @@ Supports configurable output folder, file naming, and verbose logging.
 # %% Imports
 # Libraries:
 import os
-import sys
 import argparse
 import json
 import logging
 import pandas as pd
 import datetime as dt
 
-# External parameters:
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+# External functions:
 from whistles_recognition_system.utils import files_list_creator, get_bbox_params, calc_hist, save_hist, plot_WRSresults
+# External parameters:
 from whistles_recognition_system.config import Tbin, Fbin, Foffset, Npxs
 
 script_name = "WRSresults"
