@@ -29,7 +29,7 @@ argparser = argparse.ArgumentParser(
         "It generates visualizations and JSON files for each processed image.\n"
         "Requires the 'test.py' file to be in the same folder as this script.\n"
         "Example usage:\n"
-        "  python ./scripts/WRSapplication_v1.py --model ../models/best_exp20.pt --data ./data --output_results ./results"
+        "  python ./scripts/WRSapplication_images.py --model ../models/best_exp20.pt --data ./data --output_results ./results"
     ),
     formatter_class=argparse.RawTextHelpFormatter
 )
