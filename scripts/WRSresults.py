@@ -32,7 +32,7 @@ argparser = argparse.ArgumentParser(
     description="Script to analyze WRS results from the outpu JSON files.\n"
                 "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
                 "Example usage:\n"
-                "  python ./scripts/WRSresults_v1.py --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
+                "  python ./scripts/WRSresults.py --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
     formatter_class=argparse.RawTextHelpFormatter
 )
 
