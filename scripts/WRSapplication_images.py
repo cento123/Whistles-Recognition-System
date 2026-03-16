@@ -1,8 +1,10 @@
 """
+Run the Whistles Recognition System on all images in a specified folder, including its subfolders.
+Processes each image with a YOLO model, saves annotated images, and exports JSON results.
+Supports filtering by filename substring and image extension, with configurable confidence and IoU thresholds.
+
 # Created on Thu Mar 12 2026 10:25:02 UTC
-
-@author: ddietor
-
+@author: ddietor & cento123
 """
 # %% Imports
 # Libraries:
@@ -12,9 +14,9 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from whistles_recognition_system.functions import test_model, paint_results, save_jsons, filesListCreator
+from whistles_recognition_system.utils import test_model, paint_results, save_jsons, files_list_creator
 
-script_name = "WRSapplication_v1"
+script_name = "WRSapplication_images"
 # %% Set up logging
 # %% Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -89,7 +91,7 @@ else:
 
 # %% Program execution:
 if __name__ == "__main__":
-    # print(f"Executing {script_name}...")
+    # logger.info(f"Executing {script_name}...")
     model_path = args.model
     conf = args.conf
     iou = args.iou
@@ -100,14 +102,14 @@ if __name__ == "__main__":
     filename_contains = args.filename_contains
     image_extension = args.image_extension
 
-    images = filesListCreator(data_folder,filesList_extension=image_extension, filesList_contains=filename_contains)
-    print(f"There are {len(images)} images to analyze")
+    images = files_list_creator(data_folder,filesList_extension=image_extension, filesList_contains=filename_contains)
+    logger.info(f"There are {len(images)} images to analyze")
     for indx_png, png in enumerate(images, start=1):
-        print(f"Processing ({indx_png+1}/{len(images)}): {os.path.basename(png)}")
+        logger.info(f"Processing ({indx_png+1}/{len(images)}): {os.path.basename(png)}")
         results = test_model(model_path, png, conf, iou, batch_size, device)
         if results and hasattr(results[0], "boxes") and len(results[0].boxes) > 0:
-            print(f"Found {len(results[0].boxes)} whistle(s) in {os.path.basename(png)}")
+            logger.info(f"Found {len(results[0].boxes)} whistle(s) in {os.path.basename(png)}")
             paint_results(results, save_path=output_results)
             save_jsons(results, save_path=output_results)
 
-    # print(f"...{script_name} finalize!")
+    # logger.info(f"...{script_name} finalize!")

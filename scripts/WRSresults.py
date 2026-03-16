@@ -1,8 +1,10 @@
 """
+Analyze Whistles Recognition System JSON outputs.
+Extracts Tdur, Fmin, Fmax, Fdur for all whistles, saves a CSV summary, and optionally generates histograms and boxplots.
+Supports configurable output folder, file naming, and verbose logging.
+
 # Created on Tue Mar 10 2026 18:56:32 UTC
-
 @author: ddietor
-
 """
 # %% Imports
 # Libraries:
@@ -16,10 +18,10 @@ import datetime as dt
 
 # External parameters:
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from whistles_recognition_system.functions import filesListCreator, GetItemParams, calcHist, saveHist, saveWRSreults
+from whistles_recognition_system.utils import files_list_creator, get_bbox_params, calc_hist, save_hist, plot_WRSresults
 from whistles_recognition_system.config import Tpx, Fpx, Fpx_0, Npxs
 
-script_name = "WRSresults_v1"
+script_name = "WRSresults"
 # %% Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -92,10 +94,10 @@ if __name__ == "__main__":
     output_results = args.output_results
     FileName_output = args.output_name
     PltHist_flag = args.output_hist
-    # print(f"Executing {script_name}...")
-    jsons = filesListCreator(data_path,filesList_extension='.json')
+    # logger.info(f"Executing {script_name}...")
+    jsons = files_list_creator(data_path,filesList_extension='.json')
     jsons.sort()
-    # print(f"There are {len(jsons)}")
+    # logger.info(f"There are {len(jsons)}")
     Results_df = []
     Results_df_columns = ['FileName','Wid','Conf','Tini','Tdur','Fmin','Fmax']
     W_id = -1
@@ -109,7 +111,7 @@ if __name__ == "__main__":
             for item in data:
                 if item.get("class") == "w":
                     W_id += 1
-                    Conf, Tini, Tdur, Fmin, Fmax = GetItemParams(item,Tpx,Fpx,Fpx_0,Npxs)
+                    Conf, Tini, Tdur, Fmin, Fmax = get_bbox_params(item,Tpx,Fpx,Fpx_0,Npxs)
                     row_data = [os.path.basename(json_file),W_id,Conf,Tini,Tdur,Fmin,Fmax]
                     Results_df.append(row_data)
     Results_df = pd.DataFrame(data=Results_df, columns = Results_df_columns)
@@ -132,13 +134,13 @@ if __name__ == "__main__":
                     Xlabel_str = 'Time [s]'
                 else:
                     continue
-                Yvalue, Nbins, nTh, thVal = calcHist(data2hist, BinRes, prob=True)
+                Yvalue, Nbins, nTh, thVal = calc_hist(data2hist, BinRes, prob=True)
                 title_str = f"{len(Results_df)} whistles\n{col}"
                 HistName = FileName_output + f"_{col}"
-                saveHist(Yvalue, Nbins, FontSize, title_str, Xlabel_str, output_results, HistName)
+                save_hist(Yvalue, Nbins, FontSize, title_str, Xlabel_str, output_results, HistName)
                 
     # Output data saved as csv
-    print(f"{len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles, stored in {FileName_output}")
+    logger.info(f"{len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles, stored in {FileName_output}")
     metadata = [
         "# ----------------------------------------"
         f"# {len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles",
@@ -154,6 +156,6 @@ if __name__ == "__main__":
         Results_df.to_csv(f, sep=";", index=False)
 
     # Output data saved as Boxplot:
-    saveWRSreults(Results_df, FontSize, output_results, FileName_output)
+    plot_WRSresults(Results_df, FontSize, output_results, FileName_output)
 
-    # print(f"...{script_name} finalize!")
+    # logger.info(f"...{script_name} finalize!")
