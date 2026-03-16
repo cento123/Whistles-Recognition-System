@@ -1,14 +1,15 @@
 """
-Script to test a YOLO model using the ultralytics library and Whistles Recognition System model (v0.1.5)
+Test a YOLO model for whistle detection using the Whistles Recognition System (v0.1.5).
+Runs inference on a dataset, saves annotated images, and exports results as JSON.
+Uses ultralytics YOLO library and whistles_recognition_system utilities.
 
-@author: cento123
-
+Author: cento123
 """
 
 import argparse
 import logging
 
-from whistles_recognition_system.functions import test_model, paint_results, save_jsons
+from whistles_recognition_system.utils import test_model, paint_results, save_jsons
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
