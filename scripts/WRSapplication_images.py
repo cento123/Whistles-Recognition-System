@@ -10,6 +10,7 @@ Supports filtering by filename substring and image extension, with configurable 
 # Libraries:
 import argparse
 import logging
+import os
 
 # External functions:
 from whistles_recognition_system.utils import test_model, paint_results, save_jsons, files_list_creator
