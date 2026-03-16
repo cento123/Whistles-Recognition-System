@@ -322,12 +322,12 @@ def plot_WRSresults(results_df: pd.DataFrame, font_size: int, output_results: st
     sns.set_palette("dark")
     # Adjust relative widths: left subplot 1/3, right subplot 2/3
     fig, axes = plt.subplots(1, 2, figsize=(12, 6), gridspec_kw={'width_ratios': [1, 2]})
-    fig.suptitle(f"{len(Results_df)} whistles", fontsize=FontSize, fontweight='bold')
+    fig.suptitle(f"{len(results_df)} whistles", fontsize=font_size, fontweight='bold')
     plt.subplots_adjust(top=0.88, wspace=0.3)  # add space between subplots
     # Left axes: Tdur box plot (single box)
     sns.boxplot(
-        x=['Tdur']*len(Results_df),
-        y=Results_df['Tdur'],
+        x=['Tdur']*len(results_df),
+        y=results_df['Tdur'],
         ax=axes[0],
         width=0.3,
         color='white',
@@ -337,12 +337,12 @@ def plot_WRSresults(results_df: pd.DataFrame, font_size: int, output_results: st
         medianprops=dict(color='black', linewidth=2),
         flierprops=dict(marker='o', markerfacecolor='black', markersize=4, linestyle='none')
     )
-    axes[0].set_xlabel('', fontsize=FontSize)
-    axes[0].set_ylabel('Time [s]', fontsize=FontSize)
-    axes[0].tick_params(axis='both', which='major', labelsize=FontSize)
-    axes[0].tick_params(axis='both', which='minor', labelsize=FontSize)
+    axes[0].set_xlabel('', fontsize=font_size)
+    axes[0].set_ylabel('Time [s]', fontsize=font_size)
+    axes[0].tick_params(axis='both', which='major', labelsize=font_size)
+    axes[0].tick_params(axis='both', which='minor', labelsize=font_size)
     # Right axes: Fmin, Fmax, Fdur box plot (3 boxes)
-    freq_data = Results_df[['Fmin', 'Fmax', 'Fdur']] * 1e-3
+    freq_data = results_df[['Fmin', 'Fmax', 'Fdur']] * 1e-3
     df_long = freq_data.melt(var_name='FrequencyType', value_name='Frequency_kHz')
     sns.boxplot(
         x='FrequencyType',
@@ -357,13 +357,13 @@ def plot_WRSresults(results_df: pd.DataFrame, font_size: int, output_results: st
         medianprops=dict(color='black', linewidth=2),
         flierprops=dict(marker='o', markerfacecolor='black', markersize=4, linestyle='none')
     )
-    axes[1].set_xlabel('', fontsize=FontSize)
-    axes[1].set_ylabel('Frequency [kHz]', fontsize=FontSize)
-    axes[1].tick_params(axis='both', which='major', labelsize=FontSize)
-    axes[1].tick_params(axis='both', which='minor', labelsize=FontSize)
+    axes[1].set_xlabel('', fontsize=font_size)
+    axes[1].set_ylabel('Frequency [kHz]', fontsize=font_size)
+    axes[1].tick_params(axis='both', which='major', labelsize=font_size)
+    axes[1].tick_params(axis='both', which='minor', labelsize=font_size)
     plt.tight_layout()
     # Save figure
-    png_file = os.path.join(output_results, f"{FileName_output}.png")
+    png_file = os.path.join(output_results, f"{file_name_output}.png")
     plt.savefig(png_file, dpi=300)
     plt.close()
     return None
