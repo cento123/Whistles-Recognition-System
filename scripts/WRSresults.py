@@ -19,7 +19,7 @@ import datetime as dt
 # External parameters:
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from whistles_recognition_system.utils import files_list_creator, get_bbox_params, calc_hist, save_hist, plot_WRSresults
-from whistles_recognition_system.config import Tpx, Fpx, Fpx_0, Npxs
+from whistles_recognition_system.config import Tbin, Fbin, Foffset, Npxs
 
 script_name = "WRSresults"
 # %% Set up logging
@@ -81,9 +81,9 @@ else:
 logger.warning(f"""
 {'='*50}
 This is the setup in config.py:
-Tpx = {Tpx} s
-Fpx = {Fpx} Hz
-Fpx_0 = {Fpx_0} Hz
+Tbin = {Tbin} s
+Fbin = {Fbin} Hz
+Foffset = {Foffset} Hz
 Npxs = {Npxs}
 {'='*50}
 """)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             for item in data:
                 if item.get("class") == "w":
                     W_id += 1
-                    Conf, Tini, Tdur, Fmin, Fmax = get_bbox_params(item,Tpx,Fpx,Fpx_0,Npxs)
+                    Conf, Tini, Tdur, Fmin, Fmax = get_bbox_params(item,Tbin,Fbin,Foffset,Npxs)
                     row_data = [os.path.basename(json_file),W_id,Conf,Tini,Tdur,Fmin,Fmax]
                     Results_df.append(row_data)
     Results_df = pd.DataFrame(data=Results_df, columns = Results_df_columns)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         "# ----------------------------------------"
         f"# {len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles",
         f"# Creation: {dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")} by {script_name}",
-        f"# Images config: Tpx={Tpx}s, Fpx={Fpx}Hz, Fpx_0={Fpx_0}Hz, Npxs={Npxs}",
+        f"# Images config: Tbin={Tbin}s, Fbin={Fbin}Hz, Foffset={Foffset}Hz, Npxs={Npxs}",
         "# ----------------------------------------"
     ]
     with open(os.path.join(output_results,FileName_output+'.csv'), 'w', encoding='utf-8') as f:
