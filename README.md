@@ -35,7 +35,7 @@ Install dependencies using pip:
 pip install -r requirements.txt
 ```
 
-# Install the package in editable mode so scripts can import whistles_recognition_system
+## Install the package in editable mode so scripts can import whistles_recognition_system
 ```bash
 pip install -e .
 ```
