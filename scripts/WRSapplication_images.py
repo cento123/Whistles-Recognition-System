@@ -6,19 +6,18 @@ Supports filtering by filename substring and image extension, with configurable 
 # Created on Thu Mar 12 2026 10:25:02 UTC
 @author: ddietor & cento123
 """
-# %% Imports
+
+#  Imports
 # Libraries:
 import argparse
 import logging
-import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from whistles_recognition_system.utils import test_model, paint_results, save_jsons, files_list_creator
+from src.utils import files_list_creator, paint_results, save_jsons, test_model
 
 script_name = "WRSapplication_images"
-# %% Set up logging
-# %% Set up logging
+#  Set up logging
+#  Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ argparser = argparse.ArgumentParser(
         "Example usage:\n"
         "  python ./scripts/WRSapplication_v1.py --model ../models/best_exp20.pt --data_folder ./data --output_results ./results"
     ),
-    formatter_class=argparse.RawTextHelpFormatter
+    formatter_class=argparse.RawTextHelpFormatter,
 )
 argparser.add_argument(
     "--model",
@@ -42,9 +41,14 @@ argparser.add_argument(
     help="Path to the YOLO model file",
 )
 argparser.add_argument(
-    "--conf", type=float, default=0.15, help="Confidence threshold for detection (default: 0.15)"
+    "--conf",
+    type=float,
+    default=0.15,
+    help="Confidence threshold for detection (default: 0.15)",
 )
-argparser.add_argument("--iou", type=float, default=0.40, help="IoU threshold for NMS (default: 0.40)")
+argparser.add_argument(
+    "--iou", type=float, default=0.40, help="IoU threshold for NMS (default: 0.40)"
+)
 argparser.add_argument(
     "--device", type=str, default="cpu", help="Device to run the model on (cpu or cuda)"
 )
@@ -52,30 +56,26 @@ argparser.add_argument(
     "--data_folder",
     type=str,
     required=True,
-    help="Folder containing the images to process (mandatory)."
+    help="Folder containing the images to process (mandatory).",
 )
 argparser.add_argument(
     "--output_results",
     type=str,
     default=".",
-    help="Folder to store analysis results (default: current folder)."
+    help="Folder to store analysis results (default: current folder).",
 )
 argparser.add_argument(
     "--image_extension",
     type=str,
     default=".png",
-    help="File extension of images to process: .png, .jpg, etc. (default: .png)"
+    help="File extension of images to process: .png, .jpg, etc. (default: .png)",
 )
 argparser.add_argument(
     "--filename_contains",
     type=str,
-    help="Optional substring that filenames must contain."
+    help="Optional substring that filenames must contain.",
 )
-argparser.add_argument(
-    "--verbose",
-    action="store_true",
-    help="Enable verbose logging."
-)
+argparser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
 
 # -----------------------------
 # Parse arguments
@@ -89,9 +89,8 @@ if args.verbose:
 else:
     logger.setLevel(logging.INFO)
 
-# %% Program execution:
+#  Program execution:
 if __name__ == "__main__":
-    # logger.info(f"Executing {script_name}...")
     model_path = args.model
     conf = args.conf
     iou = args.iou
@@ -102,14 +101,19 @@ if __name__ == "__main__":
     filename_contains = args.filename_contains
     image_extension = args.image_extension
 
-    images = files_list_creator(data_folder,filesList_extension=image_extension, filesList_contains=filename_contains)
+    images = files_list_creator(
+        data_folder,
+        filesList_extension=image_extension,
+        filesList_contains=filename_contains,
+    )
     logger.info(f"There are {len(images)} images to analyze")
     for indx_png, png in enumerate(images, start=1):
         logger.info(f"Processing ({indx_png+1}/{len(images)}): {os.path.basename(png)}")
         results = test_model(model_path, png, conf, iou, batch_size, device)
         if results and hasattr(results[0], "boxes") and len(results[0].boxes) > 0:
-            logger.info(f"Found {len(results[0].boxes)} whistle(s) in {os.path.basename(png)}")
+            logger.info(
+                f"Found {len(results[0].boxes)} whistle(s) in {os.path.basename(png)}"
+            )
             paint_results(results, save_path=output_results)
             save_jsons(results, save_path=output_results)
 
-    # logger.info(f"...{script_name} finalize!")

@@ -9,7 +9,7 @@ Author: cento123
 import argparse
 import logging
 
-from whistles_recognition_system.utils import test_model, paint_results, save_jsons
+from src.utils import paint_results, save_jsons, test_model
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
