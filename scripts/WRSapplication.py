@@ -28,7 +28,6 @@ argparser = argparse.ArgumentParser(
     description=(
         "Script to run Whistles-Recognition-System on images and save the results.\n"
         "It generates visualizations and JSON files for each processed image.\n"
-        "Requires the 'test.py' file to be in the same folder as this script.\n"
         "Example usage:\n"
         "  python ./scripts/WRSapplication_v1.py --model ../models/best_exp20.pt --data_folder ./data --output_results ./results"
     ),
@@ -43,11 +42,14 @@ argparser.add_argument(
 argparser.add_argument(
     "--conf",
     type=float,
-    default=0.15,
-    help="Confidence threshold for detection (default: 0.15)",
+    default=0.50,
+    help="Confidence threshold for detection (default: 0.50)",
 )
 argparser.add_argument(
-    "--iou", type=float, default=0.40, help="IoU threshold for NMS (default: 0.40)"
+    "--batch_size", type=int, default=16, help="Batch size for testing"
+)
+argparser.add_argument(
+    "--iou", type=float, default=0.25, help="IoU threshold for NMS (default: 0.25)"
 )
 argparser.add_argument(
     "--device", type=str, default="cpu", help="Device to run the model on (cpu or cuda)"
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     model_path = args.model
     conf = args.conf
     iou = args.iou
-    batch_size = 1
+    batch_size = args.batch_size
     device = args.device
     data_folder = args.data_folder
     output_results = args.output_results

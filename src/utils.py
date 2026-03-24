@@ -34,10 +34,12 @@ def load_config(config_path: str) -> tuple[float, float, float, int]:
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    Fbin = config.Fbin  # Frequency resolution of the spectrogram [Hz]
-    Tbin = config.Tbin  # Time resolution of the spectrogram [s]
-    Foffset = config.Foffset  # Frequency of the bottom pixel in the spectrogram [Hz]
-    Npxs = config.Npxs  # Total number of pixels in spectrogram height
+    Fbin = float(config["Fbin"])  # Frequency resolution of the spectrogram [Hz]
+    Tbin = float(config["Tbin"])  # Time resolution of the spectrogram [s]
+    Foffset = float(
+        config["Foffset"]
+    )  # Frequency of the bottom pixel in the spectrogram [Hz]
+    Npxs = int(config["Npxs"])  # Total number of pixels in spectrogram height
 
     return Fbin, Tbin, Foffset, Npxs
 
@@ -79,6 +81,8 @@ def test_model(
         device=device,
         save=False,
         verbose=False,
+        end2end=False,
+        nms=True,
     )
 
     return results

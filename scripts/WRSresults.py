@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 Set up argument parser
 """
 argparser = argparse.ArgumentParser(
-    description="Script to analyze WRS results from the outpu JSON files.\n"
+    description="Script to analyze WRS results from the output JSON files.\n"
     "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
     "Example usage:\n"
     "  python ./scripts/WRSresults_v1.py --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
@@ -59,6 +59,7 @@ argparser.add_argument(
     default=".",
     help="Folder to store analysis results (default: current folder).",
 )
+
 argparser.add_argument(
     "--output_hist",
     action="store_true",
@@ -134,6 +135,9 @@ if __name__ == "__main__":
                     Results_df_array.append(row_data)
     Results_df = pd.DataFrame(data=Results_df_array, columns=Results_df_columns)
     Results_df["Fdur"] = Results_df["Fmax"] - Results_df["Fmin"]
+
+    # Create the output_results folder if not exists
+    os.makedirs(output_results, exist_ok=False)
 
     # Histograms of data:
     FontSize = 16
