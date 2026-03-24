@@ -41,7 +41,7 @@ def load_config(config_path: str) -> tuple[float, float, float, int]:
     )  # Frequency of the bottom pixel in the spectrogram [Hz]
     Npxs = int(config["Npxs"])  # Total number of pixels in spectrogram height
 
-    return Fbin, Tbin, Foffset, Npxs
+    return Tbin, Fbin, Foffset, Npxs
 
 
 # %% test_model function():
