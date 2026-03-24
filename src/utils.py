@@ -43,7 +43,6 @@ def load_config(config_path: str) -> tuple[float, float, float, int]:
 
     return Tbin, Fbin, Foffset, Npxs
 
-
 # %% test_model function():
 def test_model(
     model_path: str,
