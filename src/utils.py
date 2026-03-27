@@ -22,11 +22,181 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+def merge_two_boxes(det1: dict, det2: dict) -> dict:
+    """
+    The merged box is the union of the two boxes, and the confidence is the max of the two.
+
+    Args:
+        det1 (dict): First detection dictionary.
+        det2 (dict): Second detection dictionary.
+
+    Returns:
+        dict: Merged detection dictionary.
+    """
+    return {
+        "class": det1["class"],
+        "confidence": max(det1["confidence"], det2["confidence"]),
+        "bbox": {
+            "xmin": min(det1["bbox"]["xmin"], det2["bbox"]["xmin"]),
+            "ymin": min(det1["bbox"]["ymin"], det2["bbox"]["ymin"]),
+            "xmax": max(det1["bbox"]["xmax"], det2["bbox"]["xmax"]),
+            "ymax": max(det1["bbox"]["ymax"], det2["bbox"]["ymax"]),
+        },
+    }
+
+
+def calc_iou(box1: dict, box2: dict) -> float:
+    """
+    Calculate IoU between two boxes.
+
+    Args:
+        box1 (dict): First box with keys 'xmin', 'ymin', 'xmax', 'ymax'.
+        box2 (dict): Second box with keys 'xmin', 'ymin', 'xmax', 'ymax'.
+
+    Returns:
+        float: IoU value between 0 and 1.
+
+    """
+    x1 = max(box1["xmin"], box2["xmin"])
+    y1 = max(box1["ymin"], box2["ymin"])
+    x2 = min(box1["xmax"], box2["xmax"])
+    y2 = min(box1["ymax"], box2["ymax"])
+
+    inter_area = max(0, x2 - x1) * max(0, y2 - y1)
+
+    area1 = (box1["xmax"] - box1["xmin"]) * (box1["ymax"] - box1["ymin"])
+    area2 = (box2["xmax"] - box2["xmin"]) * (box2["ymax"] - box2["ymin"])
+
+    union_area = area1 + area2 - inter_area
+
+    if union_area == 0:
+        return 0
+    return inter_area / union_area
+
+
+def is_contained(inner: dict, outer: dict) -> bool:
+    """
+    Check if inner box is fully or mostly contained within outer box.
+    Args:
+        inner (dict): Inner box with keys 'xmin', 'ymin', 'xmax', 'ymax'.
+        outer (dict): Outer box with keys 'xmin', 'ymin', 'xmax', 'ymax'.
+    Returns:
+        bool: True if inner is contained in outer, False otherwise.
+    """
+    # Check if inner is completely inside outer
+    if (
+        inner["xmin"] >= outer["xmin"]
+        and inner["xmax"] <= outer["xmax"]
+        and inner["ymin"] >= outer["ymin"]
+        and inner["ymax"] <= outer["ymax"]
+    ):
+        return True
+
+    # Calculate intersection
+    x1 = max(inner["xmin"], outer["xmin"])
+    y1 = max(inner["ymin"], outer["ymin"])
+    x2 = min(inner["xmax"], outer["xmax"])
+    y2 = min(inner["ymax"], outer["ymax"])
+
+    # No intersection
+    if x2 <= x1 or y2 <= y1:
+        return False
+
+    inter_width = x2 - x1
+    inter_height = y2 - y1
+    inter_area = inter_width * inter_height
+
+    inner_width = inner["xmax"] - inner["xmin"]
+    inner_height = inner["ymax"] - inner["ymin"]
+    inner_area = inner_width * inner_height
+
+    outer_width = outer["xmax"] - outer["xmin"]
+    outer_height = outer["ymax"] - outer["ymin"]
+    outer_area = outer_width * outer_height
+
+    if inner_area == 0 or outer_area == 0:
+        return False
+
+    # Check if most of inner is inside outer (>50% of inner's area)
+    containment_ratio = inter_area / inner_area
+    if containment_ratio > 0.5:
+        return True
+
+    # Check if most of outer is inside inner (>50% of outer's area) - reverse case
+    reverse_containment_ratio = inter_area / outer_area
+    if reverse_containment_ratio > 0.5:
+        return True
+
+    # Check if boxes overlap significantly (intersection > 30% of smaller box)
+    smaller_area = min(inner_area, outer_area)
+    if inter_area / smaller_area > 0.3:
+        return True
+
+    return False
+
+
+def merge_overlapping_boxes(
+    boxes: list[dict], iou_threshold: float = 0.3
+) -> list[dict]:
+    """
+    Merge overlapping or nearby bounding boxes into single detections.
+
+    Args:
+        boxes (list[dict]): List of detection dictionaries with 'bbox', 'class', 'confidence'.
+        iou_threshold (float): IoU threshold to consider boxes as overlapping.
+            Also merges boxes where one contains the other.
+
+    Returns:
+        list[dict]: List of merged detections.
+    """
+    if not boxes:
+        return boxes
+
+    # Keep merging until no more merges are possible
+    merged = boxes.copy()
+    changed = True
+
+    while changed:
+        changed = False
+        new_merged = []
+        used = set()
+
+        for i, det1 in enumerate(merged):
+            if i in used:
+                continue
+
+            current = det1
+            for j, det2 in enumerate(merged):
+                if i >= j or j in used:
+                    continue
+                if det1["class"] != det2["class"]:
+                    continue
+
+                iou = calc_iou(current["bbox"], det2["bbox"])
+                contained = is_contained(det2["bbox"], current["bbox"]) or is_contained(
+                    current["bbox"], det2["bbox"]
+                )
+
+                if iou > iou_threshold or contained:
+                    current = merge_two_boxes(current, det2)
+                    used.add(j)
+                    changed = True
+
+            new_merged.append(current)
+            used.add(i)
+
+        merged = new_merged
+
+    return merged
+
+
 def load_config(config_path: str) -> tuple[float, float, float, int]:
     """
     Load configuration parameters from a YAML file.
+
     Args:
         config_path (str): Path to the YAML configuration file.
+
     Returns:
         config (dict): Dictionary containing the configuration parameters.
     """
@@ -43,30 +213,32 @@ def load_config(config_path: str) -> tuple[float, float, float, int]:
 
     return Tbin, Fbin, Foffset, Npxs
 
-# %% test_model function():
+
 def test_model(
     model_path: str,
     data_path: str,
     conf: float = 0.50,
-    iou: float = 0.25,
+    merge_iou: float = 0.25,
     batch_size: int = 16,
     device: str = "cpu",
 ) -> DetMetrics:
     """
     Test the YOLO model on the specified dataset.
+
     Args:
         model_path (str): Path to the YOLO model file.
         data_path (str): Path to the dataset for testing.
         conf (float): Confidence threshold for detection.
-        iou (float): IoU threshold for NMS.
+        merge_iou (float): IoU threshold for NMS.
         batch_size (int): Batch size for testing.
         device (str): Device to run the model on (cpu or cuda).
+
     Returns:
         results: list of Detection results from the model.
     """
 
     logger.info(
-        f"Testing model: {model_path} on data: {data_path} with conf: {conf}, iou: {iou}, batch_size: {batch_size}, device: {device}"
+        f"Testing model: {model_path} on data: {data_path} with conf: {conf}, iou: {merge_iou}, batch_size: {batch_size}, device: {device}"
     )
     # Load the YOLO model
     model = YOLO(model_path)
@@ -75,7 +247,7 @@ def test_model(
     results = model.predict(
         source=data_path,
         conf=conf,
-        iou=iou,
+        iou=merge_iou,
         batch=batch_size,
         device=device,
         save=False,
@@ -87,44 +259,76 @@ def test_model(
     return results
 
 
-# %% paint_results function():
-def paint_results(results: DetMetrics, save_path: str = "../results") -> None:
+def paint_results(
+    results: DetMetrics, save_path: str = "../results", merge_iou: float = 0.3
+) -> None:
     """
     Paint the detection results on the images and save them.
+
     Args:
         results: list of Detection results from the model.
         save_path (str): Directory to save the painted images.
+        merge_iou (float): IoU threshold to merge overlapping boxes.
     """
 
     logger.info(f"Painting results and saving to: {save_path}")
 
-    # Create the save directory if it doesn't exist
-    os.makedirs(save_path, exist_ok=True)
+    colors_classes = {
+        "w": (0, 255, 0),  # Green for whistles
+        "n": (0, 0, 255),  # Red for noise
+    }
 
     # Draw rectangles and labels on the images
     for result in results:
         image_path = result.path
         img = cv2.imread(image_path)
 
+        # Convert boxes to list of dicts for merging
+        boxes_list = []
         for box in result.boxes:
             xyxy = box.xyxy[0].cpu().numpy().astype(int)
-            conf = box.conf[0].cpu().numpy()
-            cls = box.cls[0].cpu().numpy()
+            conf = float(box.conf[0].cpu().numpy())
+            cls = int(box.cls[0].cpu().numpy())
+            boxes_list.append(
+                {
+                    "class": result.names[cls],
+                    "confidence": conf,
+                    "bbox": {
+                        "xmin": int(xyxy[0]),
+                        "ymin": int(xyxy[1]),
+                        "xmax": int(xyxy[2]),
+                        "ymax": int(xyxy[3]),
+                    },
+                }
+            )
+
+        # Merge overlapping boxes
+        merged_boxes = merge_overlapping_boxes(boxes_list, iou_threshold=merge_iou)
+
+        # Draw merged boxes
+        for det in merged_boxes:
+            bbox = det["bbox"]
+            conf = det["confidence"]
+            cls_name = det["class"]
 
             # Draw rectangle
             img = cv2.rectangle(
-                img, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 2
+                img,
+                (bbox["xmin"], bbox["ymin"]),
+                (bbox["xmax"], bbox["ymax"]),
+                (0, 255, 0),
+                2,
             )
 
             # Put label
-            label = f"{result.names[int(cls)]}: {conf:.2f}"
+            label = f"{cls_name}: {conf:.2f}"
             img = cv2.putText(
                 img,
                 label,
-                (xyxy[0], xyxy[1] - 10),
+                (bbox["xmin"], bbox["ymin"] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
-                (0, 255, 0),
+                colors_classes.get(cls_name, (255, 255, 255)),
                 2,
             )
 
@@ -133,13 +337,15 @@ def paint_results(results: DetMetrics, save_path: str = "../results") -> None:
         cv2.imwrite(output_path, img)
 
 
-# %% save_jsons function():
-def save_jsons(results: DetMetrics, save_path: str = "../results") -> None:
+def save_jsons(
+    results: DetMetrics, save_path: str = "../results", merge_iou: float = 0.3
+) -> None:
     """
     Save the detection results to a json files.
     Args:
         results: list of Detection results from the model.
         save_path (str): Path to save the json results files.
+        merge_iou (float): IoU threshold to merge overlapping boxes.
     """
 
     logger.info(f"Saving results to json files in: {save_path}")
@@ -149,36 +355,40 @@ def save_jsons(results: DetMetrics, save_path: str = "../results") -> None:
             save_path, os.path.splitext(os.path.basename(result.path))[0] + ".json"
         )
         json_result = []
+
+        for bboxes in result.boxes:
+            for box in bboxes:
+                xyxy = box.xyxy[0].cpu().numpy()
+                conf = box.conf[0].cpu().numpy()
+                cls = box.cls[0].cpu().numpy()
+                xmin = int(xyxy[0])
+                ymin = int(xyxy[1])
+                xmax = int(xyxy[2])
+                ymax = int(xyxy[3])
+                json_result.append(
+                    {
+                        "class": result.names[int(cls)],
+                        "confidence": np.round(float(conf), 2),
+                        "bbox": {
+                            "xmin": xmin,
+                            "ymin": ymin,
+                            "xmax": xmax,
+                            "ymax": ymax,
+                        },
+                    }
+                )
+
+        # Merge overlapping boxes
+        merged_result = merge_overlapping_boxes(json_result, iou_threshold=merge_iou)
+
         with open(json_path, "w") as f:
-            for bboxes in result.boxes:
-                for box in bboxes:
-                    xyxy = box.xyxy[0].cpu().numpy()
-                    conf = box.conf[0].cpu().numpy()
-                    cls = box.cls[0].cpu().numpy()
-                    xmin = int(xyxy[0])
-                    ymin = int(xyxy[1])
-                    xmax = int(xyxy[2])
-                    ymax = int(xyxy[3])
-                    json_result.append(
-                        {
-                            "class": result.names[int(cls)],
-                            "confidence": np.round(float(conf), 2),
-                            "bbox": {
-                                "xmin": xmin,
-                                "ymin": ymin,
-                                "xmax": xmax,
-                                "ymax": ymax,
-                            },
-                        }
-                    )
-            json.dump(json_result, f, indent=4)
+            json.dump(merged_result, f, indent=4)
 
 
-# %% filesListCreator function():
 def files_list_creator(
     folder: str,
     filesList_extension: str = "",
-    filesList_contains: Optional[list[str]] = None,
+    filesList_contains: Optional[str] = None,
 ) -> list[str]:
     """
     Create a list of files inside a folder (and its subfolders) that match
@@ -187,29 +397,27 @@ def files_list_creator(
     Args:
         folder (str): Path to the root folder to search.
         filesList_extension (str): File extension to filter by (e.g. ".txt", ".jpg").
-        filesList_contains (List[str] | None): List of substrings that must be present
+        filesList_contains (str | None): Substring that must be present
             in the filename. If None, no substring filtering is applied.
 
     Returns:
-        List[str]: List of full file paths that match the specified criteria.
+        list[str]: List of full file paths that match the specified criteria.
     """
-    # Initialize an empty list to store the matched files
     filesList = []
-    # Set the default value for filesList_contains to an empty list if it's None
-    if filesList_contains is None:
-        filesList_contains = []
-    # Walk through the directory and subdirectories
+
     for root, dirs, files in os.walk(folder):
         for file in files:
-            # Check if the file ends with the specified extension and contains all specified substrings
-            if file.endswith(filesList_extension) and all(
-                sub in file for sub in filesList_contains
-            ):
-                filesList.append(os.path.join(root, file))
+            # Check extension
+            if filesList_extension and not file.endswith(filesList_extension):
+                continue
+            # Check substring
+            if filesList_contains and filesList_contains not in file:
+                continue
+            filesList.append(os.path.join(root, file))
+
     return filesList
 
 
-# %% calc_hist function:
 def calc_hist(
     data: np.ndarray,
     BinRes: float,
@@ -229,28 +437,31 @@ def calc_hist(
             value. If None, no threshold calculation is performed.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, Optional[int], Optional[float]]:
+        tuple[np.ndarray, np.ndarray, Optional[int], Optional[float]]:
             Yvalue (np.ndarray): Histogram counts or percentages per bin.
             Nbins (np.ndarray): Centers of the histogram bins.
-            nTh (int | None): Index of the first bin reaching the cumulative
-                threshold. None if no threshold is provided or reached.
+            nTh (int | None): Index of the first bin reaching the cumulative threshold.
             thVal (float | None): Cumulative value at the threshold bin.
-                None if no threshold is provided or reached.
     """
-    # Function implementation goes here
     data = np.array(data)
+    if len(data) == 0:
+        return np.array([]), np.array([]), None, None
+
     Nbins = np.arange(0, np.max(data) + BinRes, BinRes) + BinRes / 2
     Yvalue = np.zeros(len(Nbins))
+
     # Fill histogram
     for i in range(len(Nbins)):
         lim_down = Nbins[i] - BinRes / 2
         lim_up = Nbins[i] + BinRes / 2
         Yvalue[i] = np.sum((data > lim_down) & (data <= lim_up))
+
     # Convert to percentage if necessary
     if prob:
         total = np.sum(Yvalue)
         if total > 0:
             Yvalue = Yvalue / total * 100
+
     # Threshold value calculation (optional)
     nTh = None
     thVal = None
@@ -260,10 +471,10 @@ def calc_hist(
         if len(idx) > 0:
             nTh = idx[0]
             thVal = Ycumsum[nTh]
+
     return Yvalue, Nbins, nTh, thVal
 
 
-# %% save_hist function:
 def save_hist(
     Yvalue: np.ndarray,
     Nbins: np.ndarray,
@@ -288,7 +499,9 @@ def save_hist(
     Returns:
         None
     """
-    # Compute mean and std for Gaussian overlay
+    if len(Nbins) < 2:
+        return None
+
     BinRes = Nbins[1] - Nbins[0]
     mu = np.sum(Yvalue * Nbins) / np.sum(Yvalue) if np.sum(Yvalue) > 0 else 0
     variance = (
@@ -326,7 +539,6 @@ def save_hist(
     return None
 
 
-# %% get_bbox_params function:
 def get_bbox_params(
     item: dict,
     Tbin: float,
@@ -348,7 +560,7 @@ def get_bbox_params(
         num_pixels (int): Total number of pixels in the frequency axis.
 
     Returns:
-        Tuple[float, float, float, float, float]:
+        tuple[float, float, float, float, float]:
             Conf (float): Detection confidence.
             Tini (float): Initial time of the detection [s].
             Tdur (float): Duration of the detection [s].
@@ -368,7 +580,6 @@ def get_bbox_params(
     return Conf, Tini, Tdur, Fmin, Fmax
 
 
-# %% plot_WRSresults function:
 def plot_WRSresults(
     results_df: pd.DataFrame,
     font_size: int,
@@ -377,9 +588,6 @@ def plot_WRSresults(
 ) -> None:
     """
     Generate and save boxplots summarizing whistle time and frequency statistics.
-    The function creates a figure with two subplots:
-        1. A boxplot showing the distribution of whistle durations (Tdur).
-        2. Boxplots showing the distributions of minimum frequency (Fmin), maximum frequency (Fmax), and frequency bandwidth (Fdur).
 
     Args:
         results_df (pd.DataFrame): DataFrame containing whistle detection
@@ -391,15 +599,20 @@ def plot_WRSresults(
     Returns:
         None
     """
+    if results_df.empty:
+        logger.warning("No data to plot.")
+        return None
+
     sns.set_style("whitegrid")
     sns.set_palette("dark")
-    # Adjust relative widths: left subplot 1/3, right subplot 2/3
+
     fig, axes = plt.subplots(
         1, 2, figsize=(12, 6), gridspec_kw={"width_ratios": [1, 2]}
     )
     fig.suptitle(f"{len(results_df)} whistles", fontsize=font_size, fontweight="bold")
-    plt.subplots_adjust(top=0.88, wspace=0.3)  # add space between subplots
-    # Left axes: Tdur box plot (single box)
+    plt.subplots_adjust(top=0.88, wspace=0.3)
+
+    # Left axes: Tdur box plot
     sns.boxplot(
         x=["Tdur"] * len(results_df),
         y=results_df["Tdur"],
@@ -417,8 +630,8 @@ def plot_WRSresults(
     axes[0].set_xlabel("", fontsize=font_size)
     axes[0].set_ylabel("Time [s]", fontsize=font_size)
     axes[0].tick_params(axis="both", which="major", labelsize=font_size)
-    axes[0].tick_params(axis="both", which="minor", labelsize=font_size)
-    # Right axes: Fmin, Fmax, Fdur box plot (3 boxes)
+
+    # Right axes: Fmin, Fmax, Fdur box plot
     freq_data = results_df[["Fmin", "Fmax", "Fdur"]] * 1e-3
     df_long = freq_data.melt(var_name="FrequencyType", value_name="Frequency_kHz")
     sns.boxplot(
@@ -439,9 +652,8 @@ def plot_WRSresults(
     axes[1].set_xlabel("", fontsize=font_size)
     axes[1].set_ylabel("Frequency [kHz]", fontsize=font_size)
     axes[1].tick_params(axis="both", which="major", labelsize=font_size)
-    axes[1].tick_params(axis="both", which="minor", labelsize=font_size)
+
     plt.tight_layout()
-    # Save figure
     png_file = os.path.join(output_results, f"{file_name_output}.png")
     plt.savefig(png_file, dpi=300)
     plt.close()

@@ -1,0 +1,11 @@
+[project]
+name = "whistles_recognition_system"
+version = "1.2.3" #Deinir versió cento123
+description = "WRS to detect whistles" #TBC
+authors = [{name="cento123"},{name="ddietor"}]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.setuptools.package-data]
+src = ["*.yaml"]
