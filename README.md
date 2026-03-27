@@ -86,15 +86,18 @@ To download images, labels, and models used in the paper for testing this reposi
 https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
 
 ## Output Examples
-### WRSResults.py
+
+- WRSApplication.py
+<p align="center">
+<img width="448" height="448" alt="image" src="https://github.com/user-attachments/assets/b248a4c9-57ad-45f1-b749-76866705f9e6" />
+</p
+  
+- WRSResults.py
 <p align="center">
   <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />
 </p>
 
-### WRSApplication.py
-<p align="center">
-<img width="448" height="448" alt="image" src="https://github.com/user-attachments/assets/b248a4c9-57ad-45f1-b749-76866705f9e6" />
-</p>
+>
 
 ## License
 
