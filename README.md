@@ -1,12 +1,11 @@
-
 # Whistles Recognition System (WRS) Model Testing
 
 This project provides scripts to test a WRS model described in the paper:
-'Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms'
+'Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms.'
 
 Avaria-Avaria, V.; Diego-Tortosa, D.; Gallardo, C.; Morell-Monzó, S.; & Quiroz-Rangel, C. A. (2026). *Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms*. Bioacoustics, 35(2), 148–174. https://doi.org/10.1080/09524622.2025.2612276
 
-If you use this repository in a research, a citation to this article would be appreciated.
+If you use this repository in your research, a citation to this article would be appreciated.
 
 It is designed for whistle recognition tasks and includes functionality to evaluate model performance and visualize
 detection results.
@@ -15,7 +14,7 @@ detection results.
 
 - Test WRS models on custom datasets
 - Visualize and save detection results with bounding boxes and class labels
-- Save json results for further analysis
+- Save JSON results for further analysis
 - Configurable parameters via command-line arguments
 
 ## Requirements
@@ -74,9 +73,9 @@ python3 run_wrs.py results --data_folder <path_to_test_results_WRSapplication> -
 
 - `scripts/WRSapplication.py`: script to run Whistles-Recognition-System on images and save the results
 - `scripts/WRSresults.py`: script to analyze WRSapplication results from the output JSON files
-- `src/utils.py`: utils functions used by the scripts
-- `models/`: Directory to store trained WRS model weights from "Phase 3: training with all data"
-- `images/`: Directory containing test images from main dataset (H1) used in "Phase 1: experimenting with whistles and pings"
+- `src/utils.py`: utility functions used by the scripts
+- `models/`: Directory to store trained WRS model weights from "Phase 3: training with all data."
+- `images/`: Directory containing test images from main dataset (H1) used in "Phase 1: experimenting with whistles and pings."
 - `images/` --> `gt`: Ground truth annotations for test images
 - `results/`: Directory to save output results
 - `requirements.txt`: Python dependencies
@@ -85,6 +84,17 @@ python3 run_wrs.py results --data_folder <path_to_test_results_WRSapplication> -
 To download images, labels, and models used in the paper for testing this repository, please visit the following link:
 
 https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
+
+## Output Examples
+### WRSResults.py
+<p align="center">
+  <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />
+</p>
+
+### WRSApplication.py
+<p align="center">
+<img width="448" height="448" alt="image" src="https://github.com/user-attachments/assets/b248a4c9-57ad-45f1-b749-76866705f9e6" />
+</p>
 
 ## License
 
