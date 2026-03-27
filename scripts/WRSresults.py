@@ -6,155 +6,188 @@ Supports configurable output folder, file naming, and verbose logging.
 # Created on Tue Mar 10 2026 18:56:32 UTC
 @author: ddietor
 """
-# %% Imports
-# Libraries:
-import os
+
 import argparse
+import datetime as dt
 import json
 import logging
+import os
+import shutil
+
 import pandas as pd
-import datetime as dt
 
-# External functions:
-from whistles_recognition_system.utils import files_list_creator, get_bbox_params, calc_hist, save_hist, plot_WRSresults
-# External parameters:
-from whistles_recognition_system.config import Tbin, Fbin, Foffset, Npxs
-
-script_name = "WRSresults"
-# %% Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-"""
-Set up argument parser
-"""
-argparser = argparse.ArgumentParser(
-    description="Script to analyze WRS results from the outpu JSON files.\n"
-                "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
-                "Example usage:\n"
-                "  python ./scripts/WRSresults.py --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
-    formatter_class=argparse.RawTextHelpFormatter
+from src.utils import (
+    calc_hist,
+    files_list_creator,
+    get_bbox_params,
+    load_config,
+    plot_WRSresults,
+    save_hist,
 )
 
-argparser.add_argument(
-    "--data_folder",
-    type=str,
-    required=True,
-    help="Folder to search for the JSON files (mandatory)."
-)
-argparser.add_argument(
-    "--output_results",
-    type=str,
-    default=".",
-    help="Folder to store analysis results (default: current folder)."
-)
-argparser.add_argument(
-    "--output_hist",
-    action="store_true",
-    help="If set, saves histograms for each calculated parameter (default: False)."
-)
-argparser.add_argument(
-    "--output_name",
-    type=str,
-    default=script_name,
-    help=f"Base name for output files (CSV, plots). Default: '{script_name}'."
-)
-argparser.add_argument(
-    "--verbose",
-    action="store_true",
-    help="Enable verbose logging."
-)
+SCRIPT_NAME = "WRSresults"
 
-# -----------------------------
-# Parse arguments
-# -----------------------------
-args = argparser.parse_args()
 
-# Set logging level based on verbose flag
-if args.verbose:
-    logger.setLevel(logging.DEBUG)
-    logger.debug("Verbose logging enabled.")
-else:
-    logger.setLevel(logging.INFO)
+def run():
+    """Main function to analyze WRS results."""
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
-logger.warning(f"""
-{'='*50}
-This is the setup in config.py:
-Tbin = {Tbin} s
-Fbin = {Fbin} Hz
-Foffset = {Foffset} Hz
-Npxs = {Npxs}
-{'='*50}
-""")
-# %% Program execution:
-if __name__ == "__main__":
+    # Load config
+    Tbin, Fbin, Foffset, Npxs = load_config("src/config.yaml")
+
+    # Set up argument parser
+    argparser = argparse.ArgumentParser(
+        description="Script to analyze WRS results from the output JSON files.\n"
+        "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
+        "Example usage:\n"
+        "  python run_wrs.py results --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    argparser.add_argument(
+        "--data_folder",
+        type=str,
+        required=True,
+        help="Folder to search for the JSON files (mandatory).",
+    )
+    argparser.add_argument(
+        "--output_results",
+        type=str,
+        default=".",
+        help="Folder to store analysis results (default: current folder).",
+    )
+    argparser.add_argument(
+        "--output_hist",
+        action="store_true",
+        help="If set, saves histograms for each calculated parameter (default: False).",
+    )
+    argparser.add_argument(
+        "--output_name",
+        type=str,
+        default=SCRIPT_NAME,
+        help=f"Base name for output files (CSV, plots). Default: '{SCRIPT_NAME}'.",
+    )
+    argparser.add_argument(
+        "--verbose", action="store_true", help="Enable verbose logging."
+    )
+
+    # Parse arguments
     args = argparser.parse_args()
-    data_path = args.data_folder
-    output_results = args.output_results
-    FileName_output = args.output_name
-    PltHist_flag = args.output_hist
-    # logger.info(f"Executing {script_name}...")
-    jsons = files_list_creator(data_path,filesList_extension='.json')
+
+    # Remove the output_results folder if it already exists to avoid mixing old and new results
+    if os.path.exists(args.output_results):
+        shutil.rmtree(args.output_results)
+
+    # Create the output_results folder if not exists
+    os.makedirs(args.output_results, exist_ok=True)
+
+    # Set logging level based on verbose flag
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Verbose logging enabled.")
+    else:
+        logger.setLevel(logging.INFO)
+
+    logger.info(
+        f"""
+        {'=' * 50}
+        This is the setup in config.yaml:
+        Tbin = {Tbin} s
+        Fbin = {Fbin} Hz
+        Foffset = {Foffset} Hz
+        Npxs = {Npxs}
+        {'=' * 50}
+        """
+    )
+
+    # Process JSON files
+    jsons = files_list_creator(args.data_folder, filesList_extension=".json")
     jsons.sort()
-    # logger.info(f"There are {len(jsons)}")
-    Results_df = []
-    Results_df_columns = ['FileName','Wid','Conf','Tini','Tdur','Fmin','Fmax']
+
+    Results_df_array = []
+    Results_df_columns = ["FileName", "Wid", "Conf", "Tini", "Tdur", "Fmin", "Fmax"]
     W_id = -1
-    for json_file in jsons: 
-        # Read JSON
+
+    for json_file in jsons:
         with open(json_file, "r") as f:
             data = json.load(f)
-        # Check if empty
         if data:
             data.sort(key=lambda item: item["bbox"]["xmin"])
             for item in data:
                 if item.get("class") == "w":
                     W_id += 1
-                    Conf, Tini, Tdur, Fmin, Fmax = get_bbox_params(item,Tbin,Fbin,Foffset,Npxs)
-                    row_data = [os.path.basename(json_file),W_id,Conf,Tini,Tdur,Fmin,Fmax]
-                    Results_df.append(row_data)
-    Results_df = pd.DataFrame(data=Results_df, columns = Results_df_columns)
-    Results_df['Fdur'] = Results_df['Fmax'] - Results_df['Fmin']
+                    Conf, Tini, Tdur, Fmin, Fmax = get_bbox_params(
+                        item, Tbin, Fbin, Foffset, Npxs
+                    )
+                    row_data = [
+                        os.path.basename(json_file),
+                        W_id,
+                        Conf,
+                        Tini,
+                        Tdur,
+                        Fmin,
+                        Fmax,
+                    ]
+                    Results_df_array.append(row_data)
 
-    # Histograms of data:
+    Results_df = pd.DataFrame(data=Results_df_array, columns=Results_df_columns)
+    Results_df["Fdur"] = Results_df["Fmax"] - Results_df["Fmin"]
+
+    # Histograms of data
     FontSize = 16
-    if PltHist_flag:
-        not_plot_cols = ['FileName','Wid','Conf','Tini']
+    if args.output_hist:
+        not_plot_cols = ["FileName", "Wid", "Conf", "Tini"]
         for col in Results_df.columns:
             if col not in not_plot_cols:
                 data2hist = Results_df[col]
-                if 'F' in col:
-                    data2hist = data2hist*1e-3
+                if "F" in col:
+                    data2hist = data2hist * 1e-3
                     BinRes = 0.5
-                    Xlabel_str = 'Frequency [kHz]'
-                elif 'T' in col:
-                    data2hist = data2hist
+                    Xlabel_str = "Frequency [kHz]"
+                elif "T" in col:
                     BinRes = 0.05
-                    Xlabel_str = 'Time [s]'
+                    Xlabel_str = "Time [s]"
                 else:
                     continue
                 Yvalue, Nbins, nTh, thVal = calc_hist(data2hist, BinRes, prob=True)
                 title_str = f"{len(Results_df)} whistles\n{col}"
-                HistName = FileName_output + f"_{col}"
-                save_hist(Yvalue, Nbins, FontSize, title_str, Xlabel_str, output_results, HistName)
-                
+                HistName = args.output_name + f"_{col}"
+                save_hist(
+                    Yvalue,
+                    Nbins,
+                    FontSize,
+                    title_str,
+                    Xlabel_str,
+                    args.output_results,
+                    HistName,
+                )
+
     # Output data saved as csv
-    logger.info(f"{len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles, stored in {FileName_output}")
+    logger.info(
+        f"{len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles, stored in {args.output_name}"
+    )
     metadata = [
-        "# ----------------------------------------"
+        "# ----------------------------------------",
         f"# {len(jsons)} JSON files analyzed, containing {len(Results_df)} whistles",
-        f"# Creation: {dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")} by {script_name}",
+        f"# Creation: {dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')} by {SCRIPT_NAME}",
         f"# Images config: Tbin={Tbin}s, Fbin={Fbin}Hz, Foffset={Foffset}Hz, Npxs={Npxs}",
-        "# ----------------------------------------"
+        "# ----------------------------------------",
     ]
-    with open(os.path.join(output_results,FileName_output+'.csv'), 'w', encoding='utf-8') as f:
-        # Metadata:
+    with open(
+        os.path.join(args.output_results, args.output_name + ".csv"),
+        "w",
+        encoding="utf-8",
+    ) as f:
         for line in metadata:
             f.write(line + "\n")
-        # Data:
         Results_df.to_csv(f, sep=";", index=False)
 
-    # Output data saved as Boxplot:
-    plot_WRSresults(Results_df, FontSize, output_results, FileName_output)
+    # Output data saved as Boxplot
+    plot_WRSresults(Results_df, FontSize, args.output_results, args.output_name)
 
-    # logger.info(f"...{script_name} finalize!")
+    logger.info(f"...{SCRIPT_NAME} finalize!")
+
+
+if __name__ == "__main__":
+    run()

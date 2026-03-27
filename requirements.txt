@@ -1,4 +1,4 @@
-﻿certifi==2026.1.4
+certifi==2026.1.4
 charset-normalizer==3.4.4
 contourpy==1.3.3
 cycler==0.12.1
@@ -33,7 +33,7 @@ torch==2.9.1
 torchvision==0.24.1
 typing_extensions==4.15.0
 tzdata==2025.3
-ultralytics==8.4.8
-ultralytics-thop==2.0.18
+ultralytics
+ultralytics-thop
 urllib3==2.6.3
-git+https://github.com/cento123/Whistles-Recognition-System.git@3f1cebc84d003273fa681f693ed3ec0f9f302b96#egg=whistles_recognition_system
+types-PyYAML==6.0.3
