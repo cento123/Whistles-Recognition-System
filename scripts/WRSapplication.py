@@ -14,7 +14,7 @@ import shutil
 
 from src.utils import files_list_creator, paint_results, save_jsons, test_model
 
-SCRIPT_NAME = "WRSapplication_images"
+SCRIPT_NAME = "WRSapplication"
 
 
 def run():
