@@ -42,7 +42,7 @@ def run():
         description="Script to analyze WRS results from the output JSON files.\n"
         "It extracts Tdur, Fmin, Fmax, Fdur, and creates a CSV file and some plots.\n"
         "Example usage:\n"
-        "  python run_wrs.py results --data_folder ./data --output_results ./results --output_name my_analysis --output_hist",
+        "  python run_wrs.py results --data_folder ./WRSapplication_results --output_results ./WRSresults_results --output_name my_analysis --output_hist",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     argparser.add_argument(
@@ -55,7 +55,7 @@ def run():
         "--output_results",
         type=str,
         default=".",
-        help="Folder to store analysis results (default: current folder).",
+        help="Folder to store analysis results (default: ./WRSresults_results).",
     )
     argparser.add_argument(
         "--output_hist",
