@@ -96,7 +96,7 @@ whistles-recognition-system
 ├── models/                   # Directory to store trained WRS model weights (.pt file)
 │ 
 ├── images/                      
-│   ├── test/                 # Directory containing test images
+│   └── test/                 # Directory containing test images
 │        └── gt/              # Ground truth annotations for test images (.json files)
 │
 …   # Default directories for WRS results: Both scripts remove old results if they exist, and create new folders for analysis results.
@@ -123,7 +123,7 @@ To download a sample subset of images, labels, and models used in the paper for 
   
 - WRSResults.py
 
-  Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the GDrive link.
+  Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the [GDrive link](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing).
   
 <p align="center">
   <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />
