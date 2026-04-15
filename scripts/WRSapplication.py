@@ -29,7 +29,7 @@ def run():
             "Script to run Whistles-Recognition-System on images and save the results.\n"
             "It generates visualizations and JSON files for each processed image.\n"
             "Example usage:\n"
-            "  python run_wrs.py application --model ./models/best_exp20.pt --data_folder ./data --output_results ./results"
+            "  python run_wrs.py application --model ./models/best_exp20.pt --data_folder ./images/test --output_results ./WRSapplication_results"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -69,8 +69,8 @@ def run():
     argparser.add_argument(
         "--output_results",
         type=str,
-        default=".",
-        help="Folder to store analysis results (default: current folder).",
+        default="./results",
+        help="Folder to store analysis results (default: ./WRSapplication_results).",
     )
     argparser.add_argument(
         "--image_extension",

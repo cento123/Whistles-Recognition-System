@@ -70,35 +70,72 @@ python3 run_wrs.py results --data_folder <path_to_test_results_WRSapplication> -
 - It extracts `Tdur` (time duration [s]), `Fmin` (minimum frequency [Hz]), `Fmax` (maximum frequency [Hz]), and `Fdur` (frequency bandwidth [Hz]), and generates a `CSV` file along with plots to visualize the results.
 
 ## Project Structure
-
-- `scripts/WRSapplication.py`: script to run Whistles-Recognition-System on images and save the results
-- `scripts/WRSresults.py`: script to analyze WRSapplication results from the output JSON files
-- `src/utils.py`: utility functions used by the scripts
-- `models/`: Directory to store trained WRS model weights from "Phase 3: training with all data."
-- `images/`: Directory containing test images from main dataset (H1) used in "Phase 1: experimenting with whistles and pings."
-- `images/` --> `gt`: Ground truth annotations for test images
-- `results/`: Directory to save output results
-- `requirements.txt`: Python dependencies
+```
+whistles-recognition-system 
+│ 
+├── LICENSE                    # License information for the project
+├── README.md                  # Documentation with output examples and project overview
+├── run_wrs.py                 # Script to initiate and execute WRS application (outside the scripts folder)
+├── .gitignore                 # Git ignore file to exclude unnecessary files
+├── .pre-commit-config.yaml    # Pre-commit hooks configuration file
+├── pyproject.toml             # Project configuration and dependency management
+├── requirements.txt           # Python dependencies for the project
+│ 
+├── scripts/
+│   ├── __init__.py           # Initialization file for the scripts package
+│   ├── WRSapplication.py     # Script to run Whistles-Recognition-System on images and save the results
+│   └── WRSresults.py         # Script to analyze WRSapplication results from the output JSON files
+│ 
+├── src/
+│   ├── __init__.py           # Initialization file for the src package
+│   ├── config.yaml           # Configuration file for WRSresults.py
+│   └── utils.py              # Utility functions used by the scripts
+│
+…   # You can download the following folders to testing purposes from the provided GDrive link
+│
+├── models/                   # Directory to store trained WRS model weights (.pt file)
+│ 
+├── images/                      
+│   └── test/                 # Directory containing test images
+│        └── gt/              # Ground truth annotations for test images (.json files)
+│
+…   # Default directories for WRS results: Both scripts remove old results if they exist, and create new folders for analysis results.
+│
+├── results_WRSapplication/   # Default directory to save the WRSapplication output results
+│ 
+└── results_WRSresults/       # Default directory to save the WRSresults output results
+```
 
 ## Images/labels and models
-To download images, labels, and models used in the paper for testing this repository, please visit the following link:
+To download a sample subset of images, labels, and models used in the paper for testing this repository, please visit the following link:
 
-https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
+[GDrive link to download test data](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing "Test data for the repository")
 
 ## Output Examples
 
 - WRSApplication.py
+
+  Output example for the image `images/test/H1_20191201_010040_600000_301_Frame_11_dl.png` which contains two whistles (_w_) and two noise pings (_n_).
+    
 <p align="center">
 <img width="448" height="448" alt="image" src="https://github.com/user-attachments/assets/b248a4c9-57ad-45f1-b749-76866705f9e6" />
-</p
+</p>
   
 - WRSResults.py
+
+  Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the [GDrive link](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing).
+  
 <p align="center">
   <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />
 </p>
 
->
+<p align="center">
+   Tdur: Time duration, Fmin: Minimum frequency, Fmax: Maximum frequency, and Fdur: Frequency bandwidth of the detected whistles.
+</p>
 
 ## License
 
 This project is for research and educational purposes.
+
+If you use this repository in your research, a citation to the paper would be appreciated.
+

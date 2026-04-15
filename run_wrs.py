@@ -1,8 +1,8 @@
 """
 Launcher script for WRS - Run from the project root.
 Usage:
-    python run_wrs.py application --data_folder ./images --output_results ./results
-    python run_wrs.py results --data_folder ./results --output_results ./output
+    python run_wrs.py application --data_folder ./images/test --output_results ./WRSapplication_results
+    python run_wrs.py results --data_folder ./WRSapplication_results --output_results ./WRSresults_results
 """
 
 import sys
