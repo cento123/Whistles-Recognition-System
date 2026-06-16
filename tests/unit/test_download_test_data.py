@@ -29,10 +29,11 @@ class TestCheckExistingFiles:
         (models_dir / "best_exp20.pt").write_text("model")
         (images_dir / "sample.png").write_text("png")
 
-        model_exists, images_exist = module.check_existing_files()
+        model_exists, images_exist, gt_exists = module.check_existing_files()
 
         assert model_exists is True
         assert images_exist is True
+        assert gt_exists is True
 
     def test_check_existing_files_missing(self, tmp_path, monkeypatch):
         module = _reload_module()

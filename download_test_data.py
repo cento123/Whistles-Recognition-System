@@ -44,7 +44,8 @@ def check_existing_files():
         f"GT JSON (./images/test/gt/*.json):  {'✅ Found' if gt_exists else '❌ Missing'}"
     )
 
-    return model_exists, images_exist and gt_exists
+    # Keep backward-compatible semantics for callers/tests: images_exist means PNG assets are present.
+    return model_exists, images_exist, gt_exists
 
 
 def suggest_download():
