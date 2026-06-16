@@ -27,9 +27,9 @@ def check_existing_files():
     """Check which files already exist."""
     model_exists = Path("models/best_exp20.pt").exists()
     images_root = Path("images")
-    images_exist = len(list(images_root.glob("**/*.png"))) > 0
+    images_exist = len(list(images_root.glob("test/*.png"))) > 0
 
-    gt_exists = len(list(images_root.glob("**/gt/*.json"))) > 0
+    gt_exists = len(list(images_root.glob("test/gt/*.json"))) > 0
 
     logger.info("%s", SEPARATOR)
     logger.info("📋 Checking existing files...")
@@ -38,10 +38,10 @@ def check_existing_files():
         f"Model (./models/best_exp20.pt):  {'✅ Found' if model_exists else '❌ Missing'}"
     )
     logger.info(
-        f"Images (./images/**/*.png):      {'✅ Found' if images_exist else '❌ Missing'}"
+        f"Images (./images/test/*.png):      {'✅ Found' if images_exist else '❌ Missing'}"
     )
     logger.info(
-        f"GT JSON (./images/**/gt/*.json):  {'✅ Found' if gt_exists else '❌ Missing'}"
+        f"GT JSON (./images/test/gt/*.json):  {'✅ Found' if gt_exists else '❌ Missing'}"
     )
 
     return model_exists, images_exist and gt_exists
@@ -116,8 +116,8 @@ def download_via_gdown():
         if image_root_candidates:
             image_root = next(iter(image_root_candidates))
             shutil.copytree(image_root, Path("images"), dirs_exist_ok=True)
-            copied_pngs = list(Path("images").glob("**/*.png"))
-            copied_jsons = list(Path("images").glob("**/gt/*.json"))
+            copied_pngs = list(Path("images").glob("test/*.png"))
+            copied_jsons = list(Path("images").glob("test/gt/*.json"))
             logger.info("✅ %s images copied to ./images/", len(copied_pngs))
             logger.info("✅ %s GT JSON files copied to ./images/", len(copied_jsons))
         else:
@@ -133,10 +133,10 @@ def download_via_gdown():
                         test_dir, Path("images") / test_dir.name, dirs_exist_ok=True
                     )
                     copied_pngs = list(
-                        (Path("images") / test_dir.name).glob("**/*.png")
+                        (Path("images") / test_dir.name).glob("test/*.png")
                     )
                     copied_jsons = list(
-                        (Path("images") / test_dir.name).glob("**/gt/*.json")
+                        (Path("images") / test_dir.name).glob("test/gt/*.json")
                     )
                     logger.info(
                         "✅ Preserved %s images and %s GT JSON files under ./images/%s/",
