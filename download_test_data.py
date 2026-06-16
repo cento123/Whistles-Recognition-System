@@ -27,10 +27,8 @@ def check_existing_files():
     """Check which files already exist."""
     model_exists = Path("models/best_exp20.pt").exists()
     images_root = Path("images")
-    images_exist = (
-        len(list(images_root.glob("*.png"))) > 0
-        or len(list(images_root.glob("**/*.png"))) > 0
-    )
+    images_exist = len(list(images_root.glob("**/*.png"))) > 0
+
     gt_exists = len(list(images_root.glob("**/gt/*.json"))) > 0
 
     logger.info("%s", SEPARATOR)
