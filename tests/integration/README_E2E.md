@@ -203,7 +203,7 @@ After running tests, you should have:
 | "No test images" | Run: `python download_test_data.py` |
 | Test skipped | Check models & images folders exist |
 | CSV empty | Whistles not detected - try lower `--conf` |
-| Import errors | Run: `pip install -r requirements.txt` |
+| Import errors | Run: `pip install -r requirements-test.txt` |
 | SSL certificate verify failed | Upgrade `certifi`, set `REQUESTS_CA_BUNDLE`, or use manual download mode |
 
 If you get `CERTIFICATE_VERIFY_FAILED`, run in PowerShell:

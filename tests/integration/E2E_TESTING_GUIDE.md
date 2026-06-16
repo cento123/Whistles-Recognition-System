@@ -19,8 +19,7 @@ Enhanced version with optional Google Drive integration and detailed logging.
 ### Prerequisites
 ```bash
 # Install test dependencies
-pip install -r requirements.txt
-pip install pytest pytest-cov
+pip install -r requirements-test.txt
 ```
 
 ### Run E2E Tests with Local Files

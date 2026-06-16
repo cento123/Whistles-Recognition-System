@@ -4,7 +4,7 @@
 
 ### 1. Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-test.txt
 ```
 
 ### 2. Run Basic Tests
