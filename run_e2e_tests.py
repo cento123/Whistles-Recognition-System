@@ -24,7 +24,10 @@ def run_command(cmd, description):
 def check_files():
     """Check if required files exist."""
     model = Path("models/best_exp20.pt").exists()
-    images = len(list(Path("images").glob("*.png"))) > 0
+    images = (
+        len(list(Path("images").glob("*.png"))) > 0
+        or len(list(Path("images/test").glob("*.png"))) > 0
+    )
 
     logger.info("Model:  %s", "✅" if model else "❌")
     logger.info("Images: %s", "✅" if images else "❌")
@@ -53,19 +56,21 @@ def main():
     logger.info("🎵 WRS End-to-End Test Launcher")
     logger.info("%s", "=" * 70)
 
-    # Download if needed
-    if args.download or not check_files():
-        logger.info("📥 Downloading test data...")
-        if run_command("python download_test_data.py", "Download from Google Drive"):
-            logger.info("✅ Download complete")
-        else:
-            logger.warning("⚠️ Download failed or skipped")
+    # The model is now expected to live in the repository.
+    if not Path("models/best_exp20.pt").exists():
+        logger.error("❌ Required model file is missing: ./models/best_exp20.pt")
+        return 1
+
+    if args.download:
+        logger.info(
+            "ℹ️ `--download` is kept for compatibility; the model is loaded from the repo."
+        )
 
     # Verify files
     logger.info("📋 Checking files...")
     if not check_files():
         logger.error("❌ Required files missing")
-        logger.error("Run: python download_test_data.py")
+        logger.error("Run: add models/best_exp20.pt and images/test/ to the repo")
         return 1
 
     # Run tests

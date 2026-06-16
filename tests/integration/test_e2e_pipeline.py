@@ -91,10 +91,10 @@ def gdrive_files(tmp_path_factory):
     """Resolve model/image once per session.
 
     Strategy:
-    - Model: prefer repo-local → then gdown download.
+    - Model: repo-local only (committed to the repo).
     - Image: prefer repo-local (images/test/) → then gdown download.
     Both are resolved independently so a locally-checked-out image set
-    does not require a full Drive download just for the model.
+    does not require any Drive download for the model.
     """
     tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
     model_path = tmpdir_path / "best_exp20.pt"
@@ -108,6 +108,14 @@ def gdrive_files(tmp_path_factory):
     if local_model.exists():
         shutil.copy(local_model, model_path)
     else:
+        pytest.fail(
+            "best_exp20.pt is missing from the repo. Add models/best_exp20.pt to the repository."
+        )
+
+    # ��─ Resolve image ──────────────────────────────────────────────────────────
+    if local_images:
+        shutil.copy(next(iter(local_images)), image_path)
+    else:
         current_dir = Path.cwd()
         try:
             os.chdir(tmpdir_path)
@@ -115,18 +123,6 @@ def gdrive_files(tmp_path_factory):
         finally:
             os.chdir(current_dir)
 
-        downloaded_model = tmpdir_path / "models" / "best_exp20.pt"
-        if not downloaded_model.exists():
-            pytest.fail(
-                "best_exp20.pt not found locally and gdown could not download it. "
-                "Run: python download_test_data.py  (or place models/best_exp20.pt manually)"
-            )
-        shutil.copy(downloaded_model, model_path)
-
-    # ��─ Resolve image ──────────────────────────────────────────────────────────
-    if local_images:
-        shutil.copy(next(iter(local_images)), image_path)
-    else:
         downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
         if not downloaded_images:
             pytest.fail(
