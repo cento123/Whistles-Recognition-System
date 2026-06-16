@@ -7,11 +7,36 @@ import json
 import os
 import shutil
 import tempfile
+from collections import Counter
 from unittest.mock import MagicMock, patch
+
 
 
 class TestWRSApplication:
     """Test WRSapplication module functionality."""
+
+    @staticmethod
+    def _class_counter(detections: list[dict]) -> Counter:
+        """Count detections by class label."""
+        return Counter(det["class"] for det in detections)
+
+    @staticmethod
+    def _iou(box1: dict, box2: dict) -> float:
+        """Compute IoU for bbox dictionaries."""
+        x1 = max(box1["xmin"], box2["xmin"])
+        y1 = max(box1["ymin"], box2["ymin"])
+        x2 = min(box1["xmax"], box2["xmax"])
+        y2 = min(box1["ymax"], box2["ymax"])
+
+        inter = max(0, x2 - x1) * max(0, y2 - y1)
+        area1 = max(0, box1["xmax"] - box1["xmin"]) * max(
+            0, box1["ymax"] - box1["ymin"]
+        )
+        area2 = max(0, box2["xmax"] - box2["xmin"]) * max(
+            0, box2["ymax"] - box2["ymin"]
+        )
+        union = area1 + area2 - inter
+        return inter / union if union > 0 else 0.0
 
     def test_files_list_creator_integration(self):
         """Test file listing in the context of WRS application."""
