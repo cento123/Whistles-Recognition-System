@@ -51,9 +51,9 @@ def check_existing_files():
 
 def suggest_download():
     """Suggest which files to download."""
-    model_exists, images_exist, _gt_exists = check_existing_files()
+    model_exists, images_exist, gt_exists = check_existing_files()
 
-    if model_exists and images_exist:
+    if model_exists and images_exist and gt_exists:
         logger.info("✅ All required files are present!")
         return False
 
