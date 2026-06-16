@@ -10,7 +10,6 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 
-
 class TestWRSApplication:
     """Test WRSapplication module functionality."""
 
