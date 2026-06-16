@@ -78,6 +78,35 @@ class TestSuggestDownload:
 class TestDownloadViaGdown:
     """Tests for gdown download flow."""
 
+    def test_download_via_gdown_uses_repo_local_assets_when_available(
+        self, tmp_path, monkeypatch
+    ):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        repo_root = Path(module.__file__).resolve().parent
+        local_model = repo_root / "models" / "best_exp20.pt"
+        local_images = repo_root / "images" / "test"
+
+        assert local_model.exists(), "Repo-local model is required for this test"
+        assert local_images.exists(), "Repo-local images/test is required for this test"
+
+        def fail_import(name, *args, **kwargs):
+            if name in {"gdown", "certifi"}:
+                raise AssertionError(
+                    f"{name} should not be imported when local assets exist"
+                )
+            return __import__(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fail_import)
+
+        ok = module.download_via_gdown()
+
+        assert ok is True
+        assert (tmp_path / "models" / "best_exp20.pt").exists()
+        assert (tmp_path / "images" / "test").exists()
+        assert any((tmp_path / "images" / "test").glob("*.png"))
+
     def test_download_via_gdown_success(self, tmp_path, monkeypatch):
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
