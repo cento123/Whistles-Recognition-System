@@ -37,3 +37,5 @@ ultralytics
 ultralytics-thop
 urllib3==2.6.3
 types-PyYAML==6.0.3
+pytest>=7.4.0
+pytest-cov>=4.1.0
