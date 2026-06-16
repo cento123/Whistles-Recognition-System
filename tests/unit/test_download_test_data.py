@@ -1,0 +1,156 @@
+"""Unit tests for download_test_data.py."""
+
+from __future__ import annotations
+
+import importlib
+import sys
+import types
+from pathlib import Path
+
+
+def _reload_module():
+    """Reload module to isolate monkeypatched imports per test."""
+    if "download_test_data" in sys.modules:
+        del sys.modules["download_test_data"]
+    return importlib.import_module("download_test_data")
+
+
+class TestCheckExistingFiles:
+    """Tests for existing-files checks."""
+
+    def test_check_existing_files_found(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        models_dir = tmp_path / "models"
+        images_dir = tmp_path / "images"
+        models_dir.mkdir()
+        images_dir.mkdir()
+        (models_dir / "best_exp20.pt").write_text("model")
+        (images_dir / "sample.png").write_text("png")
+
+        model_exists, images_exist = module.check_existing_files()
+
+        assert model_exists is True
+        assert images_exist is True
+
+    def test_check_existing_files_missing(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "models").mkdir()
+        (tmp_path / "images").mkdir()
+
+        model_exists, images_exist = module.check_existing_files()
+
+        assert model_exists is False
+        assert images_exist is False
+
+
+class TestSuggestDownload:
+    """Tests for suggestion behavior."""
+
+    def test_suggest_download_false_when_all_present(self, monkeypatch):
+        module = _reload_module()
+        monkeypatch.setattr(module, "check_existing_files", lambda: (True, True))
+
+        assert module.suggest_download() is False
+
+    def test_suggest_download_true_when_missing(self, monkeypatch):
+        module = _reload_module()
+        monkeypatch.setattr(module, "check_existing_files", lambda: (True, False))
+
+        assert module.suggest_download() is True
+
+
+class TestDownloadViaGdown:
+    """Tests for gdown download flow."""
+
+    def test_download_via_gdown_success(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        def fake_download_folder(url, output, quiet, use_cookies):
+            output_path = Path(output)
+            output_path.mkdir(parents=True, exist_ok=True)
+            nested = output_path / "downloaded"
+            nested.mkdir(parents=True, exist_ok=True)
+            (nested / "best_exp20.pt").write_text("model")
+            (nested / "img1.png").write_text("png1")
+            (nested / "img2.png").write_text("png2")
+
+        fake_gdown = types.SimpleNamespace(download_folder=fake_download_folder)
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
+        monkeypatch.setitem(sys.modules, "gdown", fake_gdown)
+        monkeypatch.setitem(sys.modules, "certifi", fake_certifi)
+
+        ok = module.download_via_gdown()
+
+        assert ok is True
+        assert (tmp_path / "models_" / "best_exp20.pt").exists()
+        assert (tmp_path / "images_" / "img1.png").exists()
+
+    def test_download_via_gdown_import_error(self, monkeypatch):
+        module = _reload_module()
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "gdown":
+                raise ImportError("missing gdown")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fake_import)
+
+        ok = module.download_via_gdown()
+
+        assert ok is False
+
+    def test_download_via_gdown_ssl_error(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        def fake_download_folder(url, output, quiet, use_cookies):
+            raise Exception("CERTIFICATE_VERIFY_FAILED")
+
+        fake_gdown = types.SimpleNamespace(download_folder=fake_download_folder)
+        monkeypatch.setitem(sys.modules, "gdown", fake_gdown)
+
+        ok = module.download_via_gdown()
+
+        assert ok is False
+
+
+class TestMain:
+    """Tests for main CLI routing."""
+
+    def test_main_manual_route(self, monkeypatch):
+        module = _reload_module()
+        called = {"manual": False}
+
+        monkeypatch.setattr(sys, "argv", ["download_test_data.py", "--manual"])
+        monkeypatch.setattr(module, "check_existing_files", lambda: (False, False))
+        monkeypatch.setattr(
+            module,
+            "manual_download_instructions",
+            lambda: called.__setitem__("manual", True),
+        )
+
+        module.main()
+
+        assert called["manual"] is True
+
+    def test_main_download_failure_falls_back_manual(self, monkeypatch):
+        module = _reload_module()
+        called = {"manual": False}
+
+        monkeypatch.setattr(sys, "argv", ["download_test_data.py"])
+        monkeypatch.setattr(module, "check_existing_files", lambda: (False, False))
+        monkeypatch.setattr(module, "download_via_gdown", lambda: False)
+        monkeypatch.setattr(
+            module,
+            "manual_download_instructions",
+            lambda: called.__setitem__("manual", True),
+        )
+
+        module.main()
+
+        assert called["manual"] is True

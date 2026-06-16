@@ -25,99 +25,94 @@ import requests  # type: ignore[import-untyped]
 GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
 
 
-class TestE2EWRSPipeline:
-    """End-to-end integration tests for complete WRS pipeline."""
+def _copy_local_assets(model_path: Path, image_path: Path) -> bool:
+    """Copy local model/image test assets when available."""
+    local_model = Path("./models/best_exp20.pt")
+    local_images = list(Path("./images").glob("*.png"))
+    if not local_model.exists() or not local_images:
+        return False
+    shutil.copy(local_model, model_path)
+    shutil.copy(local_images[0], image_path)
+    return True
 
-    @staticmethod
-    def _copy_local_assets(model_path: Path, image_path: Path) -> bool:
-        """Copy local model/image test assets when available."""
-        local_model = Path("./models/best_exp20.pt")
-        local_images = list(Path("./images").glob("*.png"))
-        if not local_model.exists() or not local_images:
-            return False
-        shutil.copy(local_model, model_path)
-        shutil.copy(local_images[0], image_path)
-        return True
 
-    @staticmethod
-    def _configure_ssl_bundle() -> None:
-        """Configure CA bundle for requests/gdown in Windows/corporate environments."""
+def _configure_ssl_bundle() -> None:
+    """Configure CA bundle for requests/gdown in Windows/corporate environments."""
+    try:
+        import certifi
+
+        ca_bundle = certifi.where()
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", ca_bundle)
+        os.environ.setdefault("SSL_CERT_FILE", ca_bundle)
+    except Exception:
+        # If certifi is unavailable, let the caller handle download failures.
+        pass
+
+
+@pytest.fixture(scope="session")
+def gdrive_files(tmp_path_factory):
+    """Resolve model/image once per session using local-first + Drive folder fallback."""
+    tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
+    model_path = tmpdir_path / "best_exp20.pt"
+    image_path = tmpdir_path / "sample.png"
+
+    if not _copy_local_assets(model_path, image_path):
+        download_root = tmpdir_path / "gdrive_data"
+        download_error = None
+
         try:
-            import certifi
+            import gdown
 
-            ca_bundle = certifi.where()
-            os.environ.setdefault("REQUESTS_CA_BUNDLE", ca_bundle)
-            os.environ.setdefault("SSL_CERT_FILE", ca_bundle)
-        except Exception:
-            # If certifi is unavailable, let the caller handle download failures.
-            pass
-
-    @pytest.fixture(scope="session")
-    def gdrive_files(self, tmp_path_factory):
-        """Download model and image from Google Drive."""
-
-        tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
-
-        # Download model
-        model_path = tmpdir_path / "best_exp20.pt"
-        image_path = tmpdir_path / "sample.png"
-
-        # Prefer local files to keep tests deterministic and offline-friendly.
-        if not self._copy_local_assets(model_path, image_path):
-            download_root = tmpdir_path / "gdrive_data"
-            download_error = None
+            _configure_ssl_bundle()
 
             try:
-                import gdown
-
-                self._configure_ssl_bundle()
-
-                # Download full folder; tolerate inaccessible files when supported.
-                try:
-                    gdown.download_folder(
-                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                        output=str(download_root),
-                        quiet=True,
-                        use_cookies=False,
-                        remaining_ok=True,
-                    )
-                except TypeError:
-                    # Older gdown versions may not support remaining_ok.
-                    gdown.download_folder(
-                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                        output=str(download_root),
-                        quiet=True,
-                        use_cookies=False,
-                    )
-            except requests.exceptions.SSLError as exc:
-                download_error = exc
-            except Exception as exc:
-                download_error = exc
-
-            # Reuse whatever was downloaded even if gdown raised on unrelated files.
-            model_candidates = list(download_root.glob("**/best_exp20.pt"))
-            image_candidates = list(download_root.glob("**/*.png"))
-
-            if model_candidates and image_candidates:
-                shutil.copy(model_candidates[0], model_path)
-                shutil.copy(image_candidates[0], image_path)
-            else:
-                if isinstance(download_error, requests.exceptions.SSLError):
-                    pytest.skip(
-                        "Google Drive SSL certificate verification failed in this environment. "
-                        "Use local assets in ./models and ./images, or configure CA bundle/corporate root CA. "
-                        f"Details: {download_error}"
-                    )
-                pytest.skip(
-                    "No local model/image assets and Google Drive folder download did not yield required files "
-                    f"({type(download_error).__name__}: {download_error})."
+                gdown.download_folder(
+                    url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
+                    output=str(download_root),
+                    quiet=True,
+                    use_cookies=False,
+                    remaining_ok=True,
                 )
+            except TypeError:
+                gdown.download_folder(
+                    url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
+                    output=str(download_root),
+                    quiet=True,
+                    use_cookies=False,
+                )
+        except requests.exceptions.SSLError as exc:
+            download_error = exc
+        except Exception as exc:
+            download_error = exc
 
-        return {
-            "model": model_path,
-            "image": image_path,
-            "tmpdir": tmpdir_path,
-        }
+        # Reuse whatever was downloaded even if gdown raised on unrelated files.
+        model_candidates = list(download_root.glob("**/best_exp20.pt"))
+        image_candidates = list(download_root.glob("**/*.png"))
+
+        if model_candidates and image_candidates:
+            shutil.copy(model_candidates[0], model_path)
+            shutil.copy(image_candidates[0], image_path)
+        else:
+            if isinstance(download_error, requests.exceptions.SSLError):
+                pytest.skip(
+                    "Google Drive SSL certificate verification failed in this environment. "
+                    "Use local assets in ./models and ./images, or configure CA bundle/corporate root CA. "
+                    f"Details: {download_error}"
+                )
+            pytest.skip(
+                "No local model/image assets and Google Drive folder download did not yield required files "
+                f"({type(download_error).__name__}: {download_error})."
+            )
+
+    return {
+        "model": model_path,
+        "image": image_path,
+        "tmpdir": tmpdir_path,
+    }
+
+
+class TestE2EWRSPipeline:
+    """End-to-end integration tests for complete WRS pipeline."""
 
     def test_wrsapplication_execution(self, gdrive_files):
         """Test WRSapplication detection phase."""
@@ -407,55 +402,15 @@ pytestmark = pytest.mark.integration
 class TestE2EWithGDriveDownload:
     """Integration tests that download from actual Google Drive."""
 
-    def test_download_and_process_real_data(self, tmp_path):
-        """Download real test data (or use local assets) and run full E2E flow."""
+    def test_download_and_process_real_data(self, gdrive_files, tmp_path):
+        """Run full E2E flow using the shared Drive/local asset resolver."""
         import sys
 
         from scripts.WRSapplication import run as run_application
         from scripts.WRSresults import run as run_results
 
-        model_path = tmp_path / "best_exp20.pt"
-        image_path = tmp_path / "sample.png"
-
-        # Use the same local-first strategy as TestE2EWRSPipeline.
-        if not TestE2EWRSPipeline._copy_local_assets(model_path, image_path):
-            download_root = tmp_path / "gdrive_data"
-            download_error = None
-            try:
-                import gdown
-
-                TestE2EWRSPipeline._configure_ssl_bundle()
-                try:
-                    gdown.download_folder(
-                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                        output=str(download_root),
-                        quiet=True,
-                        use_cookies=False,
-                        remaining_ok=True,
-                    )
-                except TypeError:
-                    gdown.download_folder(
-                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                        output=str(download_root),
-                        quiet=True,
-                        use_cookies=False,
-                    )
-            except requests.exceptions.SSLError as exc:
-                download_error = exc
-            except Exception as exc:
-                download_error = exc
-
-            model_candidates = list(download_root.glob("**/best_exp20.pt"))
-            image_candidates = list(download_root.glob("**/*.png"))
-
-            if model_candidates and image_candidates:
-                shutil.copy(model_candidates[0], model_path)
-                shutil.copy(image_candidates[0], image_path)
-            else:
-                pytest.skip(
-                    "Google Drive retrieval failed and no usable assets were found "
-                    f"({type(download_error).__name__}: {download_error})."
-                )
+        model_path = gdrive_files["model"]
+        image_path = gdrive_files["image"]
 
         input_dir = tmp_path / "input_images"
         detection_dir = tmp_path / "detection"
