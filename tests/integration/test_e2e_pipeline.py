@@ -24,8 +24,6 @@ import requests  # type: ignore[import-untyped]
 
 # Test data from Google Drive
 GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
-MODEL_FILE_ID = "1dJ8qH5pMpX0V8KzN1mN5Q0sL2tP9rR6wX"  # best_exp20.pt
-IMAGE_FILE_ID = "1kL9mN4pQ2rS0uT1vW2xY3zA4bC5dE6fG"  # Sample test image
 
 
 class TestE2EWRSPipeline:
@@ -73,24 +71,25 @@ class TestE2EWRSPipeline:
 
                     self._configure_ssl_bundle()
 
-                    # Try Google Drive only if local assets are unavailable.
-                    gdown.download(
-                        f"https://drive.google.com/uc?id={MODEL_FILE_ID}",
-                        str(model_path),
+                    # Download full folder because individual file IDs may be invalid or restricted.
+                    download_root = tmpdir_path / "gdrive_data"
+                    gdown.download_folder(
+                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
+                        output=str(download_root),
                         quiet=True,
+                        use_cookies=False,
                     )
 
-                    # Also try image download to avoid depending on local images.
-                    gdown.download(
-                        f"https://drive.google.com/uc?id={IMAGE_FILE_ID}",
-                        str(image_path),
-                        quiet=True,
-                    )
+                    model_candidates = list(download_root.glob("**/best_exp20.pt"))
+                    image_candidates = list(download_root.glob("**/*.png"))
 
-                    if not model_path.exists() or not image_path.exists():
+                    if not model_candidates or not image_candidates:
                         pytest.skip(
-                            "Google Drive download did not produce required model/image files."
+                            "Google Drive folder download succeeded but required model/image files were not found."
                         )
+
+                    shutil.copy(model_candidates[0], model_path)
+                    shutil.copy(image_candidates[0], image_path)
                 except requests.exceptions.SSLError as exc:
                     pytest.skip(
                         "Google Drive SSL certificate verification failed in this environment. "
