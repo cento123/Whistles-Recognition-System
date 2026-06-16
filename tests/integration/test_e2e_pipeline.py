@@ -79,13 +79,10 @@ def gdrive_files(tmp_path_factory):
 
     repo_root = Path(__file__).resolve().parents[2]
 
-    local_model_candidates = [
-        repo_root / "models" / "best_exp20.pt",
-    ]
-    local_model = next((p for p in local_model_candidates if p.exists()), None)
+    local_model = repo_root / "models" / "best_exp20.pt"
     local_images = sorted((repo_root / "images" / "test").glob("*.png"))
 
-    if local_model is not None and local_images:
+    if local_model.exists() and local_images:
         shutil.copy(local_model, model_path)
         shutil.copy(local_images[0], image_path)
     else:
@@ -349,20 +346,14 @@ class TestE2EWRSPipeline:
         from scripts.WRSapplication import run as run_application
 
         repo_root = Path(__file__).resolve().parents[2]
-        data_folder_candidates = [
-            repo_root / "images" / "test",
-        ]
-        data_folder = next((p for p in data_folder_candidates if p.exists()), None)
-        gt_folder = data_folder / "gt" if data_folder is not None else None
+        data_folder = repo_root / "images" / "test"
+        gt_folder = data_folder / "gt"
 
-        if data_folder is None or gt_folder is None or not gt_folder.exists():
+        if not data_folder.exists() or not gt_folder.exists():
             pytest.skip("A GT-backed test set is required in images/test/gt")
 
-        model_candidates = [
-            repo_root / "models" / "best_exp20.pt",
-        ]
-        model_path = next((p for p in model_candidates if p.exists()), None)
-        if model_path is None:
+        model_path = repo_root / "models" / "best_exp20.pt"
+        if not model_path.exists():
             pytest.skip("best_exp20.pt model file was not found in models/ ")
 
         image_candidates = sorted(

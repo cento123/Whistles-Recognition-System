@@ -73,9 +73,9 @@ def download_via_gdown():
         print("📥 Downloading via gdown...")
         print("=" * 60)
 
-        # Create directories
-        Path("models_").mkdir(exist_ok=True)
-        Path("images_").mkdir(exist_ok=True)
+        # Create canonical project directories
+        Path("models").mkdir(exist_ok=True)
+        Path("images").mkdir(exist_ok=True)
 
         # Download folder
         output_dir = "./gdrive_data"
@@ -95,15 +95,23 @@ def download_via_gdown():
         # Find and move model
         model_files = list(gdrive_path.glob("**/best_exp20.pt"))
         if model_files:
-            shutil.copy(model_files[0], "models_/best_exp20.pt")
+            shutil.copy(model_files[0], "models/best_exp20.pt")
             print(f"\n✅ Model copied to ./models/")
 
-        # Find and move images
-        image_files = list(gdrive_path.glob("**/*.png"))
-        for img in image_files[:10]:  # Limit to first 10 for speed
-            shutil.copy(img, f"images_/{img.name}")
-        if image_files:
-            print(f"✅ {len(image_files)} images copied to ./images/")
+        # Preserve the downloaded images tree when available (keeps test/gt structure).
+        image_root_candidates = [
+            path for path in gdrive_path.glob("**/images") if path.is_dir()
+        ]
+        if image_root_candidates:
+            shutil.copytree(image_root_candidates[0], "images", dirs_exist_ok=True)
+            copied_pngs = list(Path("images").glob("**/*.png"))
+            print(f"✅ {len(copied_pngs)} images copied to ./images/")
+        else:
+            image_files = list(gdrive_path.glob("**/*.png"))
+            for img in image_files[:10]:
+                shutil.copy(img, f"images/{img.name}")
+            if image_files:
+                print(f"✅ {len(image_files[:10])} images copied to ./images/")
 
         # Cleanup
         shutil.rmtree(gdrive_path, ignore_errors=True)

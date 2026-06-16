@@ -73,10 +73,13 @@ class TestDownloadViaGdown:
             output_path = Path(output)
             output_path.mkdir(parents=True, exist_ok=True)
             nested = output_path / "downloaded"
-            nested.mkdir(parents=True, exist_ok=True)
+            images_test = nested / "images" / "test"
+            images_gt = images_test / "gt"
+            images_gt.mkdir(parents=True, exist_ok=True)
             (nested / "best_exp20.pt").write_text("model")
-            (nested / "img1.png").write_text("png1")
-            (nested / "img2.png").write_text("png2")
+            (images_test / "img1.png").write_text("png1")
+            (images_test / "img2.png").write_text("png2")
+            (images_gt / "img1.json").write_text("{}")
 
         fake_gdown = types.SimpleNamespace(download_folder=fake_download_folder)
         fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
@@ -86,8 +89,9 @@ class TestDownloadViaGdown:
         ok = module.download_via_gdown()
 
         assert ok is True
-        assert (tmp_path / "models_" / "best_exp20.pt").exists()
-        assert (tmp_path / "images_" / "img1.png").exists()
+        assert (tmp_path / "models" / "best_exp20.pt").exists()
+        assert (tmp_path / "images" / "test" / "img1.png").exists()
+        assert (tmp_path / "images" / "test" / "gt" / "img1.json").exists()
 
     def test_download_via_gdown_import_error(self, monkeypatch):
         module = _reload_module()
