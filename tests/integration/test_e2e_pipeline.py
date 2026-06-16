@@ -19,89 +19,40 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import requests  # type: ignore[import-untyped]
 
-# Test data from Google Drive
-GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
-
-
-def _copy_local_assets(model_path: Path, image_path: Path) -> bool:
-    """Copy local model/image test assets when available."""
-    local_model = Path("./models/best_exp20.pt")
-    local_images = list(Path("./images").glob("*.png"))
-    if not local_model.exists() or not local_images:
-        return False
-    shutil.copy(local_model, model_path)
-    shutil.copy(local_images[0], image_path)
-    return True
-
-
-def _configure_ssl_bundle() -> None:
-    """Configure CA bundle for requests/gdown in Windows/corporate environments."""
-    try:
-        import certifi
-
-        ca_bundle = certifi.where()
-        os.environ.setdefault("REQUESTS_CA_BUNDLE", ca_bundle)
-        os.environ.setdefault("SSL_CERT_FILE", ca_bundle)
-    except Exception:
-        # If certifi is unavailable, let the caller handle download failures.
-        pass
+import download_test_data
 
 
 @pytest.fixture(scope="session")
 def gdrive_files(tmp_path_factory):
-    """Resolve model/image once per session using local-first + Drive folder fallback."""
+    """Resolve model/image once per session using local-first + download_test_data fallback."""
     tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
     model_path = tmpdir_path / "best_exp20.pt"
     image_path = tmpdir_path / "sample.png"
 
-    if not _copy_local_assets(model_path, image_path):
-        download_root = tmpdir_path / "gdrive_data"
-        download_error = None
-
+    local_model = Path("models/best_exp20.pt")
+    local_images = list(Path("images").glob("*.png"))
+    if local_model.exists() and local_images:
+        shutil.copy(local_model, model_path)
+        shutil.copy(local_images[0], image_path)
+    else:
+        # Reuse the project downloader logic without duplicating folder-download code here.
+        current_dir = Path.cwd()
         try:
-            import gdown
+            os.chdir(tmpdir_path)
+            download_ok = download_test_data.download_via_gdown()
+        finally:
+            os.chdir(current_dir)
 
-            _configure_ssl_bundle()
+        downloaded_model = tmpdir_path / "models_" / "best_exp20.pt"
+        downloaded_images = list((tmpdir_path / "images_").glob("*.png"))
 
-            try:
-                gdown.download_folder(
-                    url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                    output=str(download_root),
-                    quiet=True,
-                    use_cookies=False,
-                    remaining_ok=True,
-                )
-            except TypeError:
-                gdown.download_folder(
-                    url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-                    output=str(download_root),
-                    quiet=True,
-                    use_cookies=False,
-                )
-        except requests.exceptions.SSLError as exc:
-            download_error = exc
-        except Exception as exc:
-            download_error = exc
-
-        # Reuse whatever was downloaded even if gdown raised on unrelated files.
-        model_candidates = list(download_root.glob("**/best_exp20.pt"))
-        image_candidates = list(download_root.glob("**/*.png"))
-
-        if model_candidates and image_candidates:
-            shutil.copy(model_candidates[0], model_path)
-            shutil.copy(image_candidates[0], image_path)
+        if download_ok and downloaded_model.exists() and downloaded_images:
+            shutil.copy(downloaded_model, model_path)
+            shutil.copy(downloaded_images[0], image_path)
         else:
-            if isinstance(download_error, requests.exceptions.SSLError):
-                pytest.skip(
-                    "Google Drive SSL certificate verification failed in this environment. "
-                    "Use local assets in ./models and ./images, or configure CA bundle/corporate root CA. "
-                    f"Details: {download_error}"
-                )
             pytest.skip(
-                "No local model/image assets and Google Drive folder download did not yield required files "
-                f"({type(download_error).__name__}: {download_error})."
+                "No local model/image assets and download_test_data.py could not fetch test data."
             )
 
     return {
