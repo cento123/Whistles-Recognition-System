@@ -41,10 +41,11 @@ class TestCheckExistingFiles:
         (tmp_path / "models").mkdir()
         (tmp_path / "images").mkdir()
 
-        model_exists, images_exist = module.check_existing_files()
+        model_exists, images_exist, gt_exists = module.check_existing_files()
 
         assert model_exists is False
         assert images_exist is False
+        assert gt_exists is False
 
 
 class TestSuggestDownload:
