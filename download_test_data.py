@@ -28,10 +28,7 @@ def check_existing_files():
     model_exists = Path("models/best_exp20.pt").exists()
     images_root = Path("images")
     # Accept both legacy and nested image layouts.
-    images_exist = (
-        len(list(images_root.glob("*.png"))) > 0
-        or len(list(images_root.glob("test/*.png"))) > 0
-    )
+    images_exist = len(list(images_root.glob("test/*.png"))) > 0
 
     gt_exists = len(list(images_root.glob("test/gt/*.json"))) > 0
 

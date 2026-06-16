@@ -136,7 +136,9 @@ class TestMain:
         called = {"manual": False}
 
         monkeypatch.setattr(sys, "argv", ["download_test_data.py", "--manual"])
-        monkeypatch.setattr(module, "check_existing_files", lambda: (False, False))
+        monkeypatch.setattr(
+            module, "check_existing_files", lambda: (False, False, False)
+        )
         monkeypatch.setattr(
             module,
             "manual_download_instructions",
@@ -152,7 +154,9 @@ class TestMain:
         called = {"manual": False}
 
         monkeypatch.setattr(sys, "argv", ["download_test_data.py"])
-        monkeypatch.setattr(module, "check_existing_files", lambda: (False, False))
+        monkeypatch.setattr(
+            module, "check_existing_files", lambda: (False, False, False)
+        )
         monkeypatch.setattr(module, "download_via_gdown", lambda: False)
         monkeypatch.setattr(
             module,
