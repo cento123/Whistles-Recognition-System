@@ -4,27 +4,30 @@ Quick launcher for WRS End-to-End Tests
 Runs complete pipeline: Download → Test → Validate
 """
 
+import logging
 import subprocess
 import sys
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 
 def run_command(cmd, description):
     """Execute command and report results."""
-    print(f"\n{'='*70}")
-    print(f"▶ {description}")
-    print(f"{'='*70}")
+    logger.info("%s", "=" * 70)
+    logger.info("▶ %s", description)
+    logger.info("%s", "=" * 70)
     result = subprocess.run(cmd, shell=True)
     return result.returncode == 0
 
 
 def check_files():
     """Check if required files exist."""
-    model = Path("models_/best_exp20.pt").exists()
-    images = len(list(Path("images_").glob("*.png"))) > 0
+    model = Path("models/best_exp20.pt").exists()
+    images = len(list(Path("images").glob("*.png"))) > 0
 
-    print(f"Model:  {'✅' if model else '❌'}")
-    print(f"Images: {'✅' if images else '❌'}")
+    logger.info("Model:  %s", "✅" if model else "❌")
+    logger.info("Images: %s", "✅" if images else "❌")
 
     return model and images
 
@@ -46,23 +49,23 @@ def main():
 
     args = parser.parse_args()
 
-    print("\n" + "=" * 70)
-    print("🎵 WRS End-to-End Test Launcher")
-    print("=" * 70)
+    logger.info("%s", "=" * 70)
+    logger.info("🎵 WRS End-to-End Test Launcher")
+    logger.info("%s", "=" * 70)
 
     # Download if needed
     if args.download or not check_files():
-        print("\n📥 Downloading test data...")
+        logger.info("📥 Downloading test data...")
         if run_command("python download_test_data.py", "Download from Google Drive"):
-            print("✅ Download complete")
+            logger.info("✅ Download complete")
         else:
-            print("⚠️ Download failed or skipped")
+            logger.warning("⚠️ Download failed or skipped")
 
     # Verify files
-    print("\n📋 Checking files...")
+    logger.info("📋 Checking files...")
     if not check_files():
-        print("❌ Required files missing")
-        print("\nRun: python download_test_data.py")
+        logger.error("❌ Required files missing")
+        logger.error("Run: python download_test_data.py")
         return 1
 
     # Run tests
@@ -79,17 +82,17 @@ def main():
     verbose = "-vv -s" if args.verbose else "-v -s"
     cmd = f"pytest {test_path} {verbose} --tb=short"
 
-    print(f"\n🧪 Running: {args.test}")
+    logger.info("🧪 Running: %s", args.test)
     success = run_command(cmd, "Running WRS E2E Tests")
 
-    print("\n" + "=" * 70)
+    logger.info("%s", "=" * 70)
     if success:
-        print("✅ All tests passed!")
-        print("=" * 70)
+        logger.info("✅ All tests passed!")
+        logger.info("%s", "=" * 70)
         return 0
     else:
-        print("❌ Some tests failed")
-        print("=" * 70)
+        logger.error("❌ Some tests failed")
+        logger.info("%s", "=" * 70)
         return 1
 
 

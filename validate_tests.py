@@ -3,21 +3,26 @@ Quick validation script to check if test fixes are working.
 Run from project root: python validate_tests.py
 """
 
+import logging
 import subprocess
 import sys
+
+logger = logging.getLogger(__name__)
 
 
 def run_command(cmd, description):
     """Run a command and report results."""
-    print(f"\n{'='*60}")
-    print(f"🧪 {description}")
-    print(f"{'='*60}")
+    logger.info("%s", "=" * 60)
+    logger.info("🧪 %s", description)
+    logger.info("%s", "=" * 60)
     result = subprocess.run(cmd, shell=True, capture_output=False)
     return result.returncode == 0
 
 
 def main():
     """Run validation checks."""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     checks = [
         (
             "pytest tests/unit/test_utils.py::TestCalcHist::test_calc_hist_uniform_distribution -v",
@@ -50,15 +55,17 @@ def main():
 
     for cmd, desc in checks:
         if run_command(cmd, desc):
-            print(f"✅ PASSED")
+            logger.info("✅ PASSED")
             passed += 1
         else:
-            print(f"❌ FAILED")
+            logger.error("❌ FAILED")
             failed += 1
 
-    print(f"\n{'='*60}")
-    print(f"📊 Summary: {passed} passed, {failed} failed out of {len(checks)} tests")
-    print(f"{'='*60}\n")
+    logger.info("%s", "=" * 60)
+    logger.info(
+        "📊 Summary: %s passed, %s failed out of %s tests", passed, failed, len(checks)
+    )
+    logger.info("%s", "=" * 60)
 
     return 0 if failed == 0 else 1
 
