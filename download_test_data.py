@@ -22,8 +22,8 @@ GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
 
 def check_existing_files():
     """Check which files already exist."""
-    model_exists = Path("models_/best_exp20.pt").exists()
-    images_exist = len(list(Path("images_").glob("*.png"))) > 0
+    model_exists = Path("models/best_exp20.pt").exists()
+    images_exist = len(list(Path("images").glob("*.png"))) > 0
 
     print("\n" + "=" * 60)
     print("📋 Checking existing files...")
