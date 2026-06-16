@@ -27,7 +27,11 @@ def check_existing_files():
     """Check which files already exist."""
     model_exists = Path("models/best_exp20.pt").exists()
     images_root = Path("images")
-    images_exist = len(list(images_root.glob("test/*.png"))) > 0
+    # Accept both legacy and nested image layouts.
+    images_exist = (
+        len(list(images_root.glob("*.png"))) > 0
+        or len(list(images_root.glob("test/*.png"))) > 0
+    )
 
     gt_exists = len(list(images_root.glob("test/gt/*.json"))) > 0
 
@@ -50,7 +54,7 @@ def check_existing_files():
 
 def suggest_download():
     """Suggest which files to download."""
-    model_exists, images_exist = check_existing_files()
+    model_exists, images_exist, _gt_exists = check_existing_files()
 
     if model_exists and images_exist:
         logger.info("✅ All required files are present!")
@@ -245,7 +249,7 @@ def main():
     logger.info("%s", SEPARATOR)
 
     # Check existing files
-    model_exists, images_exist = check_existing_files()
+    model_exists, images_exist, _gt_exists = check_existing_files()
 
     if args.manual:
         manual_download_instructions()

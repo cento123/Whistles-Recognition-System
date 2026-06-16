@@ -349,6 +349,15 @@ class TestE2EWRSPipeline:
         data_folder = repo_root / "images" / "test"
         gt_folder = data_folder / "gt"
 
+        # Try to materialize GT-backed assets before hard-failing the test.
+        if not data_folder.exists() or not gt_folder.exists():
+            current_dir = Path.cwd()
+            try:
+                os.chdir(repo_root)
+                download_test_data.download_via_gdown()
+            finally:
+                os.chdir(current_dir)
+
         if not data_folder.exists() or not gt_folder.exists():
             pytest.fail("A GT-backed test set is required in images/test/gt")
 

@@ -27,7 +27,7 @@ class TestCheckExistingFiles:
         gt_dir = images_dir / "test" / "gt"
         models_dir.mkdir()
         images_dir.mkdir()
-        gt_dir.mkdir()
+        gt_dir.mkdir(parents=True)
         (models_dir / "best_exp20.pt").write_text("model")
         (images_dir / "sample.png").write_text("png")
         (gt_dir / "sample.json").write_text("json")
