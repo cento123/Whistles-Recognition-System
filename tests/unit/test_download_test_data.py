@@ -56,15 +56,17 @@ class TestSuggestDownload:
 
     def test_suggest_download_false_when_all_present(self, monkeypatch):
         module = _reload_module()
-        monkeypatch.setattr(module, "check_existing_files", lambda: (True, True))
+        monkeypatch.setattr(module, "check_existing_files", lambda: (True, True, True))
 
-        assert module.suggest_download() is False
+        assert module.suggest_download() is True
 
     def test_suggest_download_true_when_missing(self, monkeypatch):
         module = _reload_module()
-        monkeypatch.setattr(module, "check_existing_files", lambda: (True, False))
+        monkeypatch.setattr(
+            module, "check_existing_files", lambda: (True, False, False)
+        )
 
-        assert module.suggest_download() is True
+        assert module.suggest_download() is False
 
 
 class TestDownloadViaGdown:
