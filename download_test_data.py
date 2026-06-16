@@ -138,11 +138,19 @@ def download_via_gdown():
             "quiet": False,
             "use_cookies": False,
         }
+        download_error = None
         try:
-            gdown.download_folder(**download_kwargs, remaining_ok=True)
-        except TypeError:
-            # Compatibility with older gdown versions and unit-test fakes.
-            gdown.download_folder(**download_kwargs)
+            try:
+                gdown.download_folder(**download_kwargs, remaining_ok=True)
+            except TypeError:
+                # Compatibility with older gdown versions and unit-test fakes.
+                gdown.download_folder(**download_kwargs)
+        except Exception as exc:
+            download_error = exc
+            logger.warning(
+                "⚠️ gdown reported a folder download error; checking whether the required files were still downloaded: %s",
+                exc,
+            )
 
         # Move model and images to correct locations
         gdrive_path = output_dir
@@ -176,11 +184,18 @@ def download_via_gdown():
         logger.info("✅ %s GT JSON files copied to ./images/", len(copied_jsons))
 
         if not model_present or not copied_pngs:
+            if download_error is not None:
+                logger.error("❌ Download failed: %s", download_error)
             logger.error(
                 "❌ Downloaded data is incomplete; required model or images are missing"
             )
             shutil.rmtree(gdrive_path, ignore_errors=True)
             return False
+
+        if download_error is not None:
+            logger.warning(
+                "⚠️ Download completed with recoverable errors; the required files were obtained successfully."
+            )
 
         # Cleanup
         shutil.rmtree(gdrive_path, ignore_errors=True)

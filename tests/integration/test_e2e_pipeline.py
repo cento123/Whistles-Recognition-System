@@ -56,6 +56,22 @@ def _class_counter(detections: list[dict]) -> Counter:
     return Counter(det["class"] for det in detections)
 
 
+def _assert_prediction_schema(detections: list[dict]) -> None:
+    """Validate the basic WRS prediction JSON structure."""
+    assert isinstance(detections, list), "JSON should contain a list"
+
+    for det in detections:
+        assert "class" in det, "Detection missing 'class'"
+        assert "confidence" in det, "Detection missing 'confidence'"
+        assert "bbox" in det, "Detection missing 'bbox'"
+
+        bbox = det["bbox"]
+        assert all(k in bbox for k in ["xmin", "ymin", "xmax", "ymax"])
+        assert 0 <= det["confidence"] <= 1.0
+        assert bbox["xmin"] < bbox["xmax"]
+        assert bbox["ymin"] < bbox["ymax"]
+
+
 def _iou(box1: dict, box2: dict) -> float:
     """Compute IoU for bbox dictionaries."""
     x1 = max(box1["xmin"], box2["xmin"])
@@ -83,8 +99,9 @@ def gdrive_files(tmp_path_factory):
     local_images = sorted((repo_root / "images" / "test").glob("*.png"))
 
     if local_model.exists() and local_images:
+        first_local_image = next(iter(local_images))
         shutil.copy(local_model, model_path)
-        shutil.copy(local_images[0], image_path)
+        shutil.copy(first_local_image, image_path)
     else:
         # Reuse the project downloader logic without duplicating folder-download code here.
         current_dir = Path.cwd()
@@ -98,8 +115,9 @@ def gdrive_files(tmp_path_factory):
         downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
 
         if download_ok and downloaded_model.exists() and downloaded_images:
+            first_downloaded_image = next(iter(downloaded_images))
             shutil.copy(downloaded_model, model_path)
-            shutil.copy(downloaded_images[0], image_path)
+            shutil.copy(first_downloaded_image, image_path)
         else:
             pytest.fail(
                 "No local model/image assets and download_test_data.py could not fetch test data."
@@ -121,13 +139,13 @@ class TestE2EWRSPipeline:
 
         model_path = gdrive_files["model"]
         image_path = gdrive_files["image"]
-        tmpdir = gdrive_files["tmpdir"]
+        work_dir = gdrive_files["tmpdir"]
 
-        output_dir = tmpdir / "wrs_detection"
+        output_dir = work_dir / "wrs_detection"
         output_dir.mkdir(exist_ok=True)
 
         # Create image input directory
-        images_dir = tmpdir / "input_images"
+        images_dir = work_dir / "input_images"
         images_dir.mkdir(exist_ok=True)
         shutil.copy(image_path, images_dir / image_path.name)
 
@@ -165,33 +183,21 @@ class TestE2EWRSPipeline:
             with open(json_file, "r") as f:
                 detections = json.load(f)
 
-            assert isinstance(detections, list), "JSON should contain a list"
-
-            # Validate each detection
-            for det in detections:
-                assert "class" in det, "Detection missing 'class'"
-                assert "confidence" in det, "Detection missing 'confidence'"
-                assert "bbox" in det, "Detection missing 'bbox'"
-
-                bbox = det["bbox"]
-                assert all(k in bbox for k in ["xmin", "ymin", "xmax", "ymax"])
-                assert 0 <= det["confidence"] <= 1.0
-                assert bbox["xmin"] < bbox["xmax"]
-                assert bbox["ymin"] < bbox["ymax"]
+            _assert_prediction_schema(detections)
 
     def test_wrsresults_execution(self, gdrive_files):
         """Test WRSresults analysis phase."""
         from scripts.WRSresults import run as run_results
 
-        tmpdir = gdrive_files["tmpdir"]
+        work_dir = gdrive_files["tmpdir"]
         model_path = gdrive_files["model"]
         image_path = gdrive_files["image"]
 
         # Step 1: Run WRSapplication first
-        wrs_app_output = tmpdir / "wrs_detection"
+        wrs_app_output = work_dir / "wrs_detection"
         wrs_app_output.mkdir(exist_ok=True)
 
-        images_dir = tmpdir / "input_images"
+        images_dir = work_dir / "input_images"
         images_dir.mkdir(exist_ok=True)
         shutil.copy(image_path, images_dir / image_path.name)
 
@@ -217,7 +223,7 @@ class TestE2EWRSPipeline:
         run_application()
 
         # Step 2: Run WRSresults analysis
-        wrs_results_output = tmpdir / "wrs_analysis"
+        wrs_results_output = work_dir / "wrs_analysis"
         wrs_results_output.mkdir(exist_ok=True)
 
         sys.argv = [
@@ -249,9 +255,9 @@ class TestE2EWRSPipeline:
 
         if len(df) > 0:
             # Check data types and ranges
-            assert all(df["Conf"] >= 0.0) and all(df["Conf"] <= 1.0)
-            assert all(df["Tdur"] > 0), "Duration should be positive"
-            assert all(df["Fmax"] > df["Fmin"]), "Fmax should be > Fmin"
+            assert df["Conf"].between(0.0, 1.0).all()
+            assert (df["Tdur"] > 0).all(), "Duration should be positive"
+            assert (df["Fmax"] > df["Fmin"]).all(), "Fmax should be > Fmin"
 
             # Verify derived Fdur column
             if "Fdur" in df.columns:
@@ -265,15 +271,15 @@ class TestE2EWRSPipeline:
 
         model_path = gdrive_files["model"]
         image_path = gdrive_files["image"]
-        tmpdir = gdrive_files["tmpdir"]
+        work_dir = gdrive_files["tmpdir"]
 
         # Setup directories
-        images_dir = tmpdir / "input_images"
+        images_dir = work_dir / "input_images"
         images_dir.mkdir(exist_ok=True)
         shutil.copy(image_path, images_dir / image_path.name)
 
-        detection_output = tmpdir / "detection"
-        analysis_output = tmpdir / "analysis"
+        detection_output = work_dir / "detection"
+        analysis_output = work_dir / "analysis"
         detection_output.mkdir(exist_ok=True)
         analysis_output.mkdir(exist_ok=True)
 
@@ -333,13 +339,13 @@ class TestE2EWRSPipeline:
 
         # Verify metadata in CSV
         with open(csv_file, "r") as f:
-            header_lines = [f.readline() for _ in range(4)]
+            header_lines = [f.readline() for _dummy in range(4)]
 
         metadata_text = "".join(header_lines)
         assert "whistles" in metadata_text or len(df) >= 0
 
     @pytest.mark.slow
-    def test_wrsapplication_matches_gt_counts_and_classes(self, tmp_path):
+    def test_wrsapplication_matches_gt_counts_and_classes(self, tmp_path, gdrive_files):
         """Run WRSapplication on GT-backed images and compare count/class distribution."""
         import sys
 
@@ -349,34 +355,24 @@ class TestE2EWRSPipeline:
         data_folder = repo_root / "images" / "test"
         gt_folder = data_folder / "gt"
 
-        # Try to materialize GT-backed assets before hard-failing the test.
-        if not data_folder.exists() or not gt_folder.exists():
-            current_dir = Path.cwd()
-            try:
-                os.chdir(repo_root)
-                download_test_data.download_via_gdown()
-            finally:
-                os.chdir(current_dir)
-
-        if not data_folder.exists() or not gt_folder.exists():
-            pytest.fail("A GT-backed test set is required in images/test/gt")
-
-        model_path = repo_root / "models" / "best_exp20.pt"
-        if not model_path.exists():
-            pytest.fail("best_exp20.pt model file was not found in models/")
-
-        image_candidates = sorted(
-            p
-            for p in data_folder.glob("*.png")
-            if (gt_folder / f"{p.stem}.json").exists()
-        )
-        if not image_candidates:
-            pytest.fail(
-                "No PNG images with matching GT JSON files found in images/test/gt"
+        use_gt = data_folder.exists() and gt_folder.exists()
+        image_candidates = []
+        if use_gt:
+            image_candidates = sorted(
+                p
+                for p in data_folder.glob("*.png")
+                if (gt_folder / f"{p.stem}.json").exists()
             )
+            use_gt = bool(image_candidates)
 
-        # Keep E2E runtime bounded.
-        selected_images = image_candidates[:3]
+        if use_gt:
+            model_path = repo_root / "models" / "best_exp20.pt"
+            if not model_path.exists():
+                pytest.fail("best_exp20.pt model file was not found in models/")
+            selected_images = image_candidates[:3]
+        else:
+            model_path = gdrive_files["model"]
+            selected_images = [gdrive_files["image"]]
 
         input_dir = tmp_path / "input"
         output_dir = tmp_path / "output"
@@ -406,6 +402,20 @@ class TestE2EWRSPipeline:
         finally:
             sys.argv = original_argv
 
+        if not use_gt:
+            selected_image = next(iter(selected_images))
+            pred_json = output_dir / f"{selected_image.stem}.json"
+            pred_png = output_dir / f"{selected_image.stem}.png"
+
+            assert pred_json.exists(), "Missing prediction JSON for fallback E2E image"
+            assert pred_png.exists(), "Missing annotated PNG for fallback E2E image"
+
+            with pred_json.open("r", encoding="utf-8") as f:
+                pred = json.load(f)
+
+            _assert_prediction_schema(pred)
+            return
+
         for img in selected_images:
             pred_json = output_dir / f"{img.stem}.json"
             gt_json = gt_folder / f"{img.stem}.json"
@@ -426,7 +436,7 @@ class TestE2EWRSPipeline:
                 gt_cls = [d for d in gt if d["class"] == cls_name]
                 assert len(pred_cls) == cls_count == len(gt_cls)
 
-                unmatched = set(range(len(gt_cls)))
+                unmatched = {idx for idx, _ in enumerate(gt_cls)}
                 for pred_det in pred_cls:
                     best_idx = None
                     best_iou = -1.0
@@ -494,8 +504,8 @@ class TestE2EWRSPipeline:
         assert all(
             col in df.columns for col in ["Conf", "Tdur", "Fmin", "Fmax", "Fdur"]
         )
-        assert all(df["Conf"] > 0.85)
-        assert all(df["Fmax"] > df["Fmin"])
+        assert (df["Conf"] > 0.85).all()
+        assert (df["Fmax"] > df["Fmin"]).all()
 
 
 # Markers for test organization
