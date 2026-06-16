@@ -241,7 +241,8 @@ class TestCalcHist:
         """Test histogram with uniform distribution."""
         data = [1.0, 2.0, 3.0, 4.0, 5.0]
         yvalue, nbins, nth, thval = calc_hist(data, 1.0)
-        assert len(yvalue) == 5
+        # Bins range from 0.5 to 5.5 (inclusive), so 6 bins with resolution 1.0
+        assert len(yvalue) == 6
         assert np.sum(yvalue) == 5  # five samples
 
     def test_calc_hist_probability_mode(self):

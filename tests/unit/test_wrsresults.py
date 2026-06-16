@@ -7,6 +7,7 @@ import json
 import os
 import tempfile
 
+import numpy as np
 import pandas as pd
 
 from src.utils import get_bbox_params, load_config
@@ -203,6 +204,3 @@ class TestWRSResults:
         assert len(noise) == 2
         assert all(w["class"] == "w" for w in whistles)
         assert all(n["class"] == "n" for n in noise)
-
-
-import numpy as np
