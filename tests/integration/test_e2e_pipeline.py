@@ -407,17 +407,100 @@ pytestmark = pytest.mark.integration
 class TestE2EWithGDriveDownload:
     """Integration tests that download from actual Google Drive."""
 
-    def test_download_and_process_real_data(self):
-        """Download real test data from Google Drive and process it."""
-        pytest.skip(
-            "Requires gdown and active Google Drive connection. "
-            "Run manually with: pip install gdown && pytest test_e2e.py -k gdrive"
-        )
+    def test_download_and_process_real_data(self, tmp_path):
+        """Download real test data (or use local assets) and run full E2E flow."""
+        import sys
 
+        from scripts.WRSapplication import run as run_application
+        from scripts.WRSresults import run as run_results
+
+        model_path = tmp_path / "best_exp20.pt"
+        image_path = tmp_path / "sample.png"
+
+        # Use the same local-first strategy as TestE2EWRSPipeline.
+        if not TestE2EWRSPipeline._copy_local_assets(model_path, image_path):
+            download_root = tmp_path / "gdrive_data"
+            download_error = None
+            try:
+                import gdown
+
+                TestE2EWRSPipeline._configure_ssl_bundle()
+                try:
+                    gdown.download_folder(
+                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
+                        output=str(download_root),
+                        quiet=True,
+                        use_cookies=False,
+                        remaining_ok=True,
+                    )
+                except TypeError:
+                    gdown.download_folder(
+                        url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
+                        output=str(download_root),
+                        quiet=True,
+                        use_cookies=False,
+                    )
+            except requests.exceptions.SSLError as exc:
+                download_error = exc
+            except Exception as exc:
+                download_error = exc
+
+            model_candidates = list(download_root.glob("**/best_exp20.pt"))
+            image_candidates = list(download_root.glob("**/*.png"))
+
+            if model_candidates and image_candidates:
+                shutil.copy(model_candidates[0], model_path)
+                shutil.copy(image_candidates[0], image_path)
+            else:
+                pytest.skip(
+                    "Google Drive retrieval failed and no usable assets were found "
+                    f"({type(download_error).__name__}: {download_error})."
+                )
+
+        input_dir = tmp_path / "input_images"
+        detection_dir = tmp_path / "detection"
+        analysis_dir = tmp_path / "analysis"
+        input_dir.mkdir(exist_ok=True)
+        detection_dir.mkdir(exist_ok=True)
+        analysis_dir.mkdir(exist_ok=True)
+        shutil.copy(image_path, input_dir / image_path.name)
+
+        original_argv = sys.argv.copy()
         try:
-            pass
-        except ImportError:
-            pytest.skip("gdown not installed")
+            sys.argv = [
+                "run_wrs.py",
+                "--model",
+                str(model_path),
+                "--data_folder",
+                str(input_dir),
+                "--output_results",
+                str(detection_dir),
+                "--conf",
+                "0.5",
+                "--merge_iou",
+                "0.3",
+                "--device",
+                "cpu",
+            ]
+            run_application()
 
-        # This would download actual data and run full pipeline
-        # For CI/CD, we skip this test
+            json_files = list(detection_dir.glob("*.json"))
+            assert len(json_files) > 0, "No detection JSON files generated"
+
+            sys.argv = [
+                "run_wrs.py",
+                "--data_folder",
+                str(detection_dir),
+                "--output_results",
+                str(analysis_dir),
+                "--output_name",
+                "gdrive_real",
+            ]
+            run_results()
+
+            csv_file = analysis_dir / "gdrive_real.csv"
+            assert csv_file.exists(), "No analysis CSV generated"
+            df = pd.read_csv(csv_file, sep=";", comment="#")
+            assert "Conf" in df.columns
+        finally:
+            sys.argv = original_argv
