@@ -101,7 +101,7 @@ def gdrive_files(tmp_path_factory):
             shutil.copy(downloaded_model, model_path)
             shutil.copy(downloaded_images[0], image_path)
         else:
-            pytest.skip(
+            pytest.fail(
                 "No local model/image assets and download_test_data.py could not fetch test data."
             )
 
@@ -350,11 +350,11 @@ class TestE2EWRSPipeline:
         gt_folder = data_folder / "gt"
 
         if not data_folder.exists() or not gt_folder.exists():
-            pytest.skip("A GT-backed test set is required in images/test/gt")
+            pytest.fail("A GT-backed test set is required in images/test/gt")
 
         model_path = repo_root / "models" / "best_exp20.pt"
         if not model_path.exists():
-            pytest.skip("best_exp20.pt model file was not found in models/ ")
+            pytest.fail("best_exp20.pt model file was not found in models/")
 
         image_candidates = sorted(
             p
@@ -362,8 +362,8 @@ class TestE2EWRSPipeline:
             if (gt_folder / f"{p.stem}.json").exists()
         )
         if not image_candidates:
-            pytest.skip(
-                "No PNG images with matching GT JSON files found in images/test/gt "
+            pytest.fail(
+                "No PNG images with matching GT JSON files found in images/test/gt"
             )
 
         # Keep E2E runtime bounded.
