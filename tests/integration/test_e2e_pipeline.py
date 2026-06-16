@@ -88,40 +88,51 @@ def _iou(box1: dict, box2: dict) -> float:
 
 @pytest.fixture(scope="session")
 def gdrive_files(tmp_path_factory):
-    """Resolve model/image once per session using local-first + download_test_data fallback."""
+    """Resolve model/image once per session.
+
+    Strategy:
+    - Model: prefer repo-local → then gdown download.
+    - Image: prefer repo-local (images/test/) → then gdown download.
+    Both are resolved independently so a locally-checked-out image set
+    does not require a full Drive download just for the model.
+    """
     tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
     model_path = tmpdir_path / "best_exp20.pt"
     image_path = tmpdir_path / "sample.png"
 
     repo_root = Path(__file__).resolve().parents[2]
-
     local_model = repo_root / "models" / "best_exp20.pt"
     local_images = sorted((repo_root / "images" / "test").glob("*.png"))
 
-    if local_model.exists() and local_images:
-        first_local_image = next(iter(local_images))
+    # ── Resolve model ──────────────────────────────────────────────────────────
+    if local_model.exists():
         shutil.copy(local_model, model_path)
-        shutil.copy(first_local_image, image_path)
     else:
-        # Reuse the project downloader logic without duplicating folder-download code here.
         current_dir = Path.cwd()
         try:
             os.chdir(tmpdir_path)
-            download_ok = download_test_data.download_via_gdown()
+            download_test_data.download_via_gdown()
         finally:
             os.chdir(current_dir)
 
         downloaded_model = tmpdir_path / "models" / "best_exp20.pt"
-        downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
-
-        if download_ok and downloaded_model.exists() and downloaded_images:
-            first_downloaded_image = next(iter(downloaded_images))
-            shutil.copy(downloaded_model, model_path)
-            shutil.copy(first_downloaded_image, image_path)
-        else:
+        if not downloaded_model.exists():
             pytest.fail(
-                "No local model/image assets and download_test_data.py could not fetch test data."
+                "best_exp20.pt not found locally and gdown could not download it. "
+                "Run: python download_test_data.py  (or place models/best_exp20.pt manually)"
             )
+        shutil.copy(downloaded_model, model_path)
+
+    # ��─ Resolve image ──────────────────────────────────────────────────────────
+    if local_images:
+        shutil.copy(next(iter(local_images)), image_path)
+    else:
+        downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
+        if not downloaded_images:
+            pytest.fail(
+                "No test images available locally (images/test/) and none were downloaded."
+            )
+        shutil.copy(next(iter(downloaded_images)), image_path)
 
     return {
         "model": model_path,
@@ -366,9 +377,9 @@ class TestE2EWRSPipeline:
             use_gt = bool(image_candidates)
 
         if use_gt:
-            model_path = repo_root / "models" / "best_exp20.pt"
-            if not model_path.exists():
-                pytest.fail("best_exp20.pt model file was not found in models/")
+            repo_model = repo_root / "models" / "best_exp20.pt"
+            # Prefer the repo-local model; fall back to the downloaded one from gdrive_files.
+            model_path = repo_model if repo_model.exists() else gdrive_files["model"]
             selected_images = image_candidates[:3]
         else:
             model_path = gdrive_files["model"]

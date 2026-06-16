@@ -28,6 +28,26 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install -r requirements-test.txt
 
+    - name: Cache model weights
+      uses: actions/cache@v4
+      id: model-cache
+      with:
+        path: models/best_exp20.pt
+        key: wrs-model-best_exp20-v1
+
+    - name: Download model (cache miss)
+      if: steps.model-cache.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p models
+        python -c "
+        import download_test_data, pathlib, sys
+        download_test_data.download_via_gdown()
+        if not pathlib.Path('models/best_exp20.pt').exists():
+            print('WARNING: model download failed; E2E tests requiring the model will fail.', file=sys.stderr)
+        else:
+            print('Model ready at models/best_exp20.pt')
+        "
+
     - name: Run pytest
       run: |
         pytest tests/ -v --tb=short --strict-markers

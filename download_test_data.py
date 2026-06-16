@@ -148,9 +148,24 @@ def download_via_gdown():
         except Exception as exc:
             download_error = exc
             logger.warning(
-                "⚠️ gdown reported a folder download error; checking whether the required files were still downloaded: %s",
-                exc,
+                "⚠️ gdown URL-based download failed; retrying with folder ID: %s", exc
             )
+            # Fallback: try folder download using the raw ID instead of the full URL.
+            try:
+                id_kwargs = {
+                    "id": GDRIVE_FOLDER_ID,
+                    "output": str(output_dir),
+                    "quiet": False,
+                    "use_cookies": False,
+                }
+                try:
+                    gdown.download_folder(**id_kwargs, remaining_ok=True)
+                except TypeError:
+                    gdown.download_folder(**id_kwargs)
+                download_error = None  # Fallback succeeded.
+                logger.info("✅ Folder download succeeded via ID fallback.")
+            except Exception as exc2:
+                logger.warning("⚠️ ID-based fallback also failed: %s", exc2)
 
         # Move model and images to correct locations
         gdrive_path = output_dir
