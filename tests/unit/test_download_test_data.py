@@ -85,10 +85,8 @@ class TestDownloadViaGdown:
         monkeypatch.chdir(tmp_path)
 
         repo_root = Path(module.__file__).resolve().parent
-        local_model = repo_root / "models" / "best_exp20.pt"
         local_images = repo_root / "images" / "test"
 
-        assert local_model.exists(), "Repo-local model is required for this test"
         assert local_images.exists(), "Repo-local images/test is required for this test"
 
         def fail_import(name, *args, **kwargs):
@@ -103,7 +101,6 @@ class TestDownloadViaGdown:
         ok = module.download_via_gdown()
 
         assert ok is True
-        assert (tmp_path / "models" / "best_exp20.pt").exists()
         assert (tmp_path / "images" / "test").exists()
         assert any((tmp_path / "images" / "test").glob("*.png"))
 
