@@ -58,13 +58,19 @@ class TestSuggestDownload:
         module = _reload_module()
         monkeypatch.setattr(module, "check_existing_files", lambda: (True, True, True))
 
-        assert module.suggest_download() is True
+        assert module.suggest_download() is False
 
     def test_suggest_download_true_when_missing(self, monkeypatch):
         module = _reload_module()
         monkeypatch.setattr(
             module, "check_existing_files", lambda: (True, False, False)
         )
+
+        assert module.suggest_download() is True
+
+    def test_suggest_download_accepts_legacy_two_value_status(self, monkeypatch):
+        module = _reload_module()
+        monkeypatch.setattr(module, "check_existing_files", lambda: (True, True))
 
         assert module.suggest_download() is False
 
@@ -99,6 +105,31 @@ class TestDownloadViaGdown:
         assert (tmp_path / "models" / "best_exp20.pt").exists()
         assert (tmp_path / "images" / "test" / "img1.png").exists()
         assert (tmp_path / "images" / "test" / "gt" / "img1.json").exists()
+
+    def test_download_via_gdown_uses_original_folder_url(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        calls = {}
+
+        def fake_download_folder(url, output, quiet, use_cookies, remaining_ok=False):
+            calls["url"] = url
+            output_path = Path(output)
+            nested = output_path / "downloaded"
+            (nested / "models").mkdir(parents=True, exist_ok=True)
+            (nested / "images" / "test" / "gt").mkdir(parents=True, exist_ok=True)
+            (nested / "models" / "best_exp20.pt").write_text("model")
+            (nested / "images" / "test" / "img1.png").write_text("png1")
+
+        fake_gdown = types.SimpleNamespace(download_folder=fake_download_folder)
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
+        monkeypatch.setitem(sys.modules, "gdown", fake_gdown)
+        monkeypatch.setitem(sys.modules, "certifi", fake_certifi)
+
+        ok = module.download_via_gdown()
+
+        assert ok is True
+        assert calls["url"] == module.GDRIVE_FOLDER_URL
 
     def test_download_via_gdown_import_error(self, monkeypatch):
         module = _reload_module()
@@ -150,6 +181,14 @@ class TestMain:
         module.main()
 
         assert called["manual"] is True
+
+    def test_main_accepts_legacy_two_value_status(self, monkeypatch):
+        module = _reload_module()
+        monkeypatch.setattr(sys, "argv", ["download_test_data.py"])
+        monkeypatch.setattr(module, "check_existing_files", lambda: (True, True))
+        monkeypatch.setattr(module, "download_via_gdown", lambda: False)
+
+        module.main()
 
     def test_main_download_failure_falls_back_manual(self, monkeypatch):
         module = _reload_module()

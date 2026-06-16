@@ -17,10 +17,42 @@ import shutil
 import ssl
 from pathlib import Path
 
-# Google Drive folder ID for test data
+# Google Drive folder ID/URL for test data
 GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
+GDRIVE_FOLDER_URL = (
+    "https://drive.google.com/drive/folders/"
+    "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing"
+)
 SEPARATOR = "============================================================"
 logger = logging.getLogger(__name__)
+
+
+def _normalize_existing_files_status(status):
+    """Accept both legacy 2-tuples and current 3-tuples from file checks."""
+    if len(status) == 2:
+        model_exists, images_exist = status
+        # Legacy callers only reported model/image presence; treat that as sufficient.
+        return model_exists, images_exist, images_exist
+
+    if len(status) == 3:
+        model_exists, images_exist, gt_exists = status
+        return model_exists, images_exist, gt_exists
+
+    raise ValueError(
+        "check_existing_files() must return (model_exists, images_exist) or "
+        "(model_exists, images_exist, gt_exists)"
+    )
+
+
+def _find_downloaded_dir(download_root: Path, dir_name: str) -> Path | None:
+    """Find a downloaded directory anywhere under the temporary gdown output."""
+    direct = download_root / dir_name
+    if direct.is_dir():
+        return direct
+
+    return next(
+        (path for path in download_root.glob(f"**/{dir_name}") if path.is_dir()), None
+    )
 
 
 def check_existing_files():
@@ -28,7 +60,10 @@ def check_existing_files():
     model_exists = Path("models/best_exp20.pt").exists()
     images_root = Path("images")
     # Accept both legacy and nested image layouts.
-    images_exist = len(list(images_root.glob("test/*.png"))) > 0
+    images_exist = (
+        len(list(images_root.glob("*.png"))) > 0
+        or len(list(images_root.glob("test/*.png"))) > 0
+    )
 
     gt_exists = len(list(images_root.glob("test/gt/*.json"))) > 0
 
@@ -39,7 +74,8 @@ def check_existing_files():
         f"Model (./models/best_exp20.pt):  {'✅ Found' if model_exists else '❌ Missing'}"
     )
     logger.info(
-        f"Images (./images/test/*.png):      {'✅ Found' if images_exist else '❌ Missing'}"
+        "Images (./images/*.png or ./images/test/*.png):      %s",
+        "✅ Found" if images_exist else "❌ Missing",
     )
     logger.info(
         f"GT JSON (./images/test/gt/*.json):  {'✅ Found' if gt_exists else '❌ Missing'}"
@@ -51,7 +87,9 @@ def check_existing_files():
 
 def suggest_download():
     """Suggest which files to download."""
-    model_exists, images_exist, gt_exists = check_existing_files()
+    model_exists, images_exist, gt_exists = _normalize_existing_files_status(
+        check_existing_files()
+    )
 
     if model_exists and images_exist and gt_exists:
         logger.info("✅ All required files are present!")
@@ -60,9 +98,7 @@ def suggest_download():
     logger.info("🔽 Missing files detected. Download from:")
     logger.info("   %s", GDRIVE_FOLDER_ID)
     logger.info("📌 Google Drive Link:")
-    logger.info(
-        "   https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
-    )
+    logger.info("   %s", GDRIVE_FOLDER_URL)
 
     return True
 
@@ -91,69 +127,60 @@ def download_via_gdown():
         Path("images").mkdir(exist_ok=True)
 
         # Download folder
-        output_dir = "./gdrive_data"
+        output_dir = Path("./gdrive_data")
+        shutil.rmtree(output_dir, ignore_errors=True)
         logger.info("Downloading to: %s", output_dir)
         logger.info("⏳ This may take a few minutes...")
 
-        gdown.download_folder(
-            url=f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER_ID}",
-            output=output_dir,
-            quiet=False,
-            use_cookies=False,
-        )
+        download_kwargs = {
+            "url": GDRIVE_FOLDER_URL,
+            "output": str(output_dir),
+            "quiet": False,
+            "use_cookies": False,
+        }
+        try:
+            gdown.download_folder(**download_kwargs, remaining_ok=True)
+        except TypeError:
+            # Compatibility with older gdown versions and unit-test fakes.
+            gdown.download_folder(**download_kwargs)
 
         # Move model and images to correct locations
-        gdrive_path = Path(output_dir)
+        gdrive_path = output_dir
+        if not gdrive_path.exists():
+            logger.error("❌ Download folder was not created: %s", gdrive_path)
+            return False
 
-        # Find and move model
-        model_file = next(gdrive_path.glob("**/best_exp20.pt"), None)
-        if model_file is not None:
-            shutil.copy(model_file, Path("models") / "best_exp20.pt")
-            logger.info("✅ Model copied to ./models/")
+        models_dir = _find_downloaded_dir(gdrive_path, "models")
+        images_dir = _find_downloaded_dir(gdrive_path, "images")
 
-        # Preserve the downloaded images tree when available (keeps test/gt structure).
-        image_root_candidates = [
-            path for path in gdrive_path.glob("**/images") if path.is_dir()
-        ]
-        if image_root_candidates:
-            image_root = next(iter(image_root_candidates))
-            shutil.copytree(image_root, Path("images"), dirs_exist_ok=True)
-            copied_pngs = list(Path("images").glob("test/*.png"))
-            copied_jsons = list(Path("images").glob("test/gt/*.json"))
-            logger.info("✅ %s images copied to ./images/", len(copied_pngs))
-            logger.info("✅ %s GT JSON files copied to ./images/", len(copied_jsons))
+        if models_dir is not None:
+            shutil.copytree(models_dir, Path("models"), dirs_exist_ok=True)
         else:
-            # Fall back to preserving any discovered test/gt subtree instead of flattening.
-            gt_dir_candidates = [
-                path for path in gdrive_path.glob("**/gt") if path.is_dir()
-            ]
-            if gt_dir_candidates:
-                gt_dir = next(iter(gt_dir_candidates))
-                test_dir = gt_dir.parent
-                if test_dir.is_dir():
-                    shutil.copytree(
-                        test_dir, Path("images") / test_dir.name, dirs_exist_ok=True
-                    )
-                    copied_pngs = list(
-                        (Path("images") / test_dir.name).glob("test/*.png")
-                    )
-                    copied_jsons = list(
-                        (Path("images") / test_dir.name).glob("test/gt/*.json")
-                    )
-                    logger.info(
-                        "✅ Preserved %s images and %s GT JSON files under ./images/%s/",
-                        len(copied_pngs),
-                        len(copied_jsons),
-                        test_dir.name,
-                    )
-            else:
-                image_files = list(gdrive_path.glob("**/*.png"))
-                for img in image_files[:10]:
-                    shutil.copy(img, Path("images") / img.name)
-                if image_files:
-                    logger.info(
-                        "✅ %s images copied to ./images/", len(image_files[:10])
-                    )
+            model_file = next(gdrive_path.glob("**/best_exp20.pt"), None)
+            if model_file is not None:
+                shutil.copy(model_file, Path("models") / "best_exp20.pt")
+
+        if images_dir is not None:
+            shutil.copytree(images_dir, Path("images"), dirs_exist_ok=True)
+
+        copied_pngs = list(Path("images").glob("**/*.png"))
+        copied_jsons = list(Path("images").glob("**/gt/*.json"))
+        model_present = (Path("models") / "best_exp20.pt").exists()
+
+        if model_present:
+            logger.info("✅ Model copied to ./models/")
+        else:
+            logger.error("❌ best_exp20.pt was not found in downloaded data")
+
+        logger.info("✅ %s images copied to ./images/", len(copied_pngs))
+        logger.info("✅ %s GT JSON files copied to ./images/", len(copied_jsons))
+
+        if not model_present or not copied_pngs:
+            logger.error(
+                "❌ Downloaded data is incomplete; required model or images are missing"
+            )
+            shutil.rmtree(gdrive_path, ignore_errors=True)
+            return False
 
         # Cleanup
         shutil.rmtree(gdrive_path, ignore_errors=True)
@@ -204,7 +231,7 @@ def manual_download_instructions():
     logger.info(
         """
 1. Open the Google Drive link:
-   https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU
+   https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
 
 2. Download these items:
    - best_exp20.pt (model)
@@ -246,7 +273,9 @@ def main():
     logger.info("%s", SEPARATOR)
 
     # Check existing files
-    model_exists, images_exist, _gt_exists = check_existing_files()
+    model_exists, images_exist, _gt_exists = _normalize_existing_files_status(
+        check_existing_files()
+    )
 
     if args.manual:
         manual_download_instructions()
