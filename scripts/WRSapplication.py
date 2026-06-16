@@ -69,7 +69,7 @@ def run():
     argparser.add_argument(
         "--output_results",
         type=str,
-        default="./results",
+        default="./WRSapplication_results",
         help="Folder to store analysis results (default: ./WRSapplication_results).",
     )
     argparser.add_argument(
