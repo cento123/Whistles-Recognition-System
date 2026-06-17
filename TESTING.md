@@ -1,4 +1,4 @@
-# WRS: Quick Start & Testing Guide
+# WRS: Quick Start & Testing Guide 
 
 ## 🚀 Getting Started (5 minutes)
 
