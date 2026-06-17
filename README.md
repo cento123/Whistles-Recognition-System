@@ -41,6 +41,8 @@ This command analyzes images from a given directory (it also processes images in
 python3 run_wrs.py application --model <path_to_model.pt> --data <path_to_test_images> --output_results <results_folder>
 ```
 
+Note: Input images correspond to spectrograms generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor) tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454).
+
 ### WRSapplication Optional Arguments
 
 - `--conf`: Confidence threshold (default: 0.5)
