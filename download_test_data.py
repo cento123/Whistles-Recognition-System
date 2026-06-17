@@ -23,6 +23,14 @@ GDRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
     "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing"
 )
+# Optional direct file IDs seen in Drive fallback logs for best_exp20.pt retrieval.
+GDRIVE_MODEL_FILE_IDS = [
+    "1yeI4p1NA4MPB_Pi0IscQy6I7ggOGMfzm",
+    "15OUqkzojLECNXfOcLuQpTQpALF4uD9Zg",
+    "1QfNoSrdBTOMsjws8UCUADCec9g6J-EOZ",
+]
+# Sanity threshold to avoid accepting HTML/error payloads as model files.
+MIN_MODEL_SIZE_BYTES = 10 * 1024 * 1024
 SEPARATOR = "============================================================"
 logger = logging.getLogger(__name__)
 
@@ -53,6 +61,47 @@ def _find_downloaded_dir(download_root: Path, dir_name: str) -> Path | None:
     return next(
         (path for path in download_root.glob(f"**/{dir_name}") if path.is_dir()), None
     )
+
+
+def _download_model_direct(gdown_module, output_path: Path) -> bool:
+    """Try direct file-id model download when folder download misses large files."""
+    file_ids = [os.environ.get("WRS_MODEL_FILE_ID", "").strip(), *GDRIVE_MODEL_FILE_IDS]
+    tried_ids = [file_id for file_id in file_ids if file_id]
+
+    for file_id in tried_ids:
+        logger.info("ℹ️ Trying direct model download via file ID: %s", file_id)
+        try:
+            gdown_module.download(
+                id=file_id,
+                output=str(output_path),
+                quiet=False,
+                fuzzy=True,
+                use_cookies=False,
+                resume=True,
+            )
+        except TypeError:
+            # Compatibility fallback for older gdown signatures.
+            gdown_module.download(
+                id=file_id,
+                output=str(output_path),
+                quiet=False,
+                fuzzy=True,
+                use_cookies=False,
+            )
+        except Exception as exc:
+            logger.warning("⚠️ Direct model download failed for ID %s: %s", file_id, exc)
+            continue
+
+        if output_path.exists() and output_path.stat().st_size >= MIN_MODEL_SIZE_BYTES:
+            logger.info("✅ Model downloaded directly to %s", output_path)
+            return True
+
+        if output_path.exists() and output_path.stat().st_size < MIN_MODEL_SIZE_BYTES:
+            logger.warning("⚠️ Downloaded model is too small; removing: %s", output_path)
+            output_path.unlink(missing_ok=True)
+
+    logger.warning("⚠️ Direct model fallback exhausted without a valid model file.")
+    return False
 
 
 def check_existing_files():
@@ -106,13 +155,6 @@ def suggest_download():
 def download_via_gdown():
     """Download using gdown library."""
     try:
-        # If the current working directory already has the required assets, avoid network usage.
-        local_model = Path("models") / "best_exp20.pt"
-        local_pngs = list(Path("images").glob("**/*.png"))
-        if local_model.exists() and local_pngs:
-            logger.info("✅ Local assets already available in the current workspace.")
-            return True
-
         import gdown
 
         try:
@@ -193,9 +235,13 @@ def download_via_gdown():
         if images_dir is not None:
             shutil.copytree(images_dir, Path("images"), dirs_exist_ok=True)
 
+        model_target = Path("models") / "best_exp20.pt"
+        if not model_target.exists():
+            _download_model_direct(gdown, model_target)
+
         copied_pngs = list(Path("images").glob("**/*.png"))
         copied_jsons = list(Path("images").glob("**/gt/*.json"))
-        model_present = (Path("models") / "best_exp20.pt").exists()
+        model_present = model_target.exists()
 
         if model_present:
             logger.info("✅ Model copied to ./models/")
@@ -319,9 +365,9 @@ def main():
         return
 
     if model_exists and images_exist:
-        logger.info("✅ All files present! You can run tests:")
-        logger.info("   pytest tests/integration/test_e2e_local.py -v -s")
-        return
+        logger.info(
+            "ℹ️ Existing assets found, but download is forced to refresh from Drive."
+        )
 
     # Try automatic download
     logger.info("🔄 Attempting automatic download with gdown...")
