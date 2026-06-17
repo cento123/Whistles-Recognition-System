@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import download_test_data
+from scripts import download_test_data
 
 
 def _load_gt_labelme_rectangles(gt_json_path: Path) -> list[dict]:

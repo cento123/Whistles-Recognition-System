@@ -25,8 +25,8 @@ def check_files():
     """Check if required files exist."""
     model = Path("models/best_exp20.pt").exists()
     images = (
-        len(list(Path("images").glob("*.png"))) > 0
-        or len(list(Path("images/test").glob("*.png"))) > 0
+        len(list(Path("../images").glob("*.png"))) > 0
+        or len(list(Path("../images/test").glob("*.png"))) > 0
     )
 
     logger.info("Model:  %s", "✅" if model else "❌")
