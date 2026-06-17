@@ -41,7 +41,7 @@ This command analyzes images from a given directory (it also processes images in
 python3 run_wrs.py application --model <path_to_model.pt> --data <path_to_test_images> --output_results <results_folder>
 ```
 
-Note: Input images correspond to spectrograms generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor) tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454).
+Note: *Input images correspond to spectrograms generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor "GitHub repository") tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454 "DOI: 10.3390/jmse13030454")*.
 
 ### WRSapplication Optional Arguments
 
@@ -113,7 +113,7 @@ To download a sample subset of images, labels, and models used in the paper for 
 
 [GDrive link to download test data](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing "Test data for the repository")
 
-The spectrogram images in this dataset were generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor) tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454).
+The spectrogram images in this dataset were generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor "GitHub repository") tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454 "DOI: 10.3390/jmse13030454").
 
 ## Output Examples
 
