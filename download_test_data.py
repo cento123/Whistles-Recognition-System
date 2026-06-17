@@ -106,19 +106,11 @@ def suggest_download():
 def download_via_gdown():
     """Download using gdown library."""
     try:
-        repo_root = Path(__file__).resolve().parent
-        local_model = repo_root / "models" / "best_exp20.pt"
-        local_images_dir = repo_root / "images" / "test"
-
-        # If the repo already contains the assets, mirror them locally and skip network access.
-        if local_model.exists() and local_images_dir.exists():
-            Path("models").mkdir(exist_ok=True)
-            Path("images").mkdir(exist_ok=True)
-            shutil.copy(local_model, Path("models") / "best_exp20.pt")
-            shutil.copytree(
-                local_images_dir.parent, Path("images") / "test", dirs_exist_ok=True
-            )
-            logger.info("✅ Local repo assets copied to ./models/ and ./images/")
+        # If the current working directory already has the required assets, avoid network usage.
+        local_model = Path("models") / "best_exp20.pt"
+        local_pngs = list(Path("images").glob("**/*.png"))
+        if local_model.exists() and local_pngs:
+            logger.info("✅ Local assets already available in the current workspace.")
             return True
 
         import gdown

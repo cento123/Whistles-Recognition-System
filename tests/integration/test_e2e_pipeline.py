@@ -91,10 +91,9 @@ def gdrive_files(tmp_path_factory):
     """Resolve model/image once per session.
 
     Strategy:
-    - Model: repo-local only (committed to the repo).
-    - Image: prefer repo-local (images/test/) → then gdown download.
-    Both are resolved independently so a locally-checked-out image set
-    does not require any Drive download for the model.
+    - Prefer local model/image assets when available.
+    - Download only missing assets via download_test_data when needed.
+    - Keep model/image resolution independent to avoid unnecessary failures.
     """
     tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
     model_path = tmpdir_path / "best_exp20.pt"
@@ -104,31 +103,38 @@ def gdrive_files(tmp_path_factory):
     local_model = repo_root / "models" / "best_exp20.pt"
     local_images = sorted((repo_root / "images" / "test").glob("*.png"))
 
-    # ── Resolve model ──────────────────────────────────────────────────────────
     if local_model.exists():
         shutil.copy(local_model, model_path)
-    else:
-        pytest.fail(
-            "best_exp20.pt is missing from the repo. Add models/best_exp20.pt to the repository."
-        )
-
-    # ��─ Resolve image ──────────────────────────────────────────────────────────
     if local_images:
         shutil.copy(next(iter(local_images)), image_path)
-    else:
+
+    if not model_path.exists() or not image_path.exists():
         current_dir = Path.cwd()
         try:
             os.chdir(tmpdir_path)
-            download_test_data.download_via_gdown()
+            download_ok = download_test_data.download_via_gdown()
         finally:
             os.chdir(current_dir)
 
+        downloaded_model = tmpdir_path / "models" / "best_exp20.pt"
         downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
-        if not downloaded_images:
-            pytest.fail(
-                "No test images available locally (images/test/) and none were downloaded."
-            )
-        shutil.copy(next(iter(downloaded_images)), image_path)
+
+        if download_ok:
+            if not model_path.exists() and downloaded_model.exists():
+                shutil.copy(downloaded_model, model_path)
+            if not image_path.exists() and downloaded_images:
+                shutil.copy(next(iter(downloaded_images)), image_path)
+
+    if not model_path.exists() or not image_path.exists():
+        missing_parts = []
+        if not model_path.exists():
+            missing_parts.append("model")
+        if not image_path.exists():
+            missing_parts.append("image")
+        pytest.fail(
+            "Required E2E assets are missing after local+download resolution: "
+            + ", ".join(missing_parts)
+        )
 
     return {
         "model": model_path,
