@@ -111,6 +111,8 @@ To download a sample subset of images, labels, and models used in the paper for 
 
 [GDrive link to download test data](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing "Test data for the repository")
 
+The spectrogram images in this dataset were generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor) tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454).
+
 ## Output Examples
 
 - WRSApplication.py
