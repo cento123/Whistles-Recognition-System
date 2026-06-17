@@ -1,0 +1,21 @@
+# Test dependencies for unit, integration, validation, and type-check runs.
+# Includes runtime requirements plus test-only tooling.
+-r requirements.txt
+
+# Test runner and coverage
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional helpers commonly used in local/CI test workflows
+pytest-mock>=3.14.0
+pytest-xdist>=3.6.1
+
+# Integration test dependency (Google Drive download helper)
+gdown>=5.2.0
+
+# Static type checking used in CI/lint flows
+mypy>=1.11.0
+
+# Typing stubs used by mypy on this repository
+types-requests>=2.32.0
+types-PyYAML==6.0.3

@@ -1,7 +1,7 @@
 # Whistles Recognition System (WRS) Model Testing
 
 This project provides scripts to test a WRS model described in the paper:
-'Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms.'
+**Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms**.
 
 Avaria-Avaria, V.; Diego-Tortosa, D.; Gallardo, C.; Morell-Monzó, S.; & Quiroz-Rangel, C. A. (2026). *Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms*. Bioacoustics, 35(2), 148–174. https://doi.org/10.1080/09524622.2025.2612276
 
@@ -41,6 +41,8 @@ This command analyzes images from a given directory (it also processes images in
 python3 run_wrs.py application --model <path_to_model.pt> --data <path_to_test_images> --output_results <results_folder>
 ```
 
+Note: *Input images correspond to spectrograms generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor "GitHub repository") tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454 "DOI: 10.3390/jmse13030454")*.
+
 ### WRSapplication Optional Arguments
 
 - `--conf`: Confidence threshold (default: 0.5)
@@ -71,8 +73,8 @@ python3 run_wrs.py results --data_folder <path_to_test_results_WRSapplication> -
 
 ## Project Structure
 ```
-whistles-recognition-system 
-│ 
+whistles-recognition-system
+│
 ├── LICENSE                    # License information for the project
 ├── README.md                  # Documentation with output examples and project overview
 ├── run_wrs.py                 # Script to initiate and execute WRS application (outside the scripts folder)
@@ -80,12 +82,12 @@ whistles-recognition-system
 ├── .pre-commit-config.yaml    # Pre-commit hooks configuration file
 ├── pyproject.toml             # Project configuration and dependency management
 ├── requirements.txt           # Python dependencies for the project
-│ 
+│
 ├── scripts/
 │   ├── __init__.py           # Initialization file for the scripts package
 │   ├── WRSapplication.py     # Script to run Whistles-Recognition-System on images and save the results
 │   └── WRSresults.py         # Script to analyze WRSapplication results from the output JSON files
-│ 
+│
 ├── src/
 │   ├── __init__.py           # Initialization file for the src package
 │   ├── config.yaml           # Configuration file for WRSresults.py
@@ -94,15 +96,15 @@ whistles-recognition-system
 …   # You can download the following folders to testing purposes from the provided GDrive link
 │
 ├── models/                   # Directory to store trained WRS model weights (.pt file)
-│ 
-├── images/                      
+│
+├── images/
 │   └── test/                 # Directory containing test images
 │        └── gt/              # Ground truth annotations for test images (.json files)
 │
 …   # Default directories for WRS results: Both scripts remove old results if they exist, and create new folders for analysis results.
 │
 ├── results_WRSapplication/   # Default directory to save the WRSapplication output results
-│ 
+│
 └── results_WRSresults/       # Default directory to save the WRSresults output results
 ```
 
@@ -111,20 +113,22 @@ To download a sample subset of images, labels, and models used in the paper for 
 
 [GDrive link to download test data](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing "Test data for the repository")
 
+The spectrogram images in this dataset were generated using the [LT-Acoustic-Feature-Extractor](https://github.com/ddietor/LT-Acoustic-Feature-Extractor "GitHub repository") tools following the methodology described in [Effective Strategies for Automatic Analysis of Acoustic Signals in Long-Term Monitoring](https://doi.org/10.3390/jmse13030454 "DOI: 10.3390/jmse13030454").
+
 ## Output Examples
 
 - WRSApplication.py
 
   Output example for the image `images/test/H1_20191201_010040_600000_301_Frame_11_dl.png` which contains two whistles (_w_) and two noise pings (_n_).
-    
+
 <p align="center">
 <img width="448" height="448" alt="image" src="https://github.com/user-attachments/assets/b248a4c9-57ad-45f1-b749-76866705f9e6" />
 </p>
-  
+
 - WRSResults.py
 
   Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the [GDrive link](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing).
-  
+
 <p align="center">
   <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />
 </p>
@@ -138,4 +142,3 @@ To download a sample subset of images, labels, and models used in the paper for 
 This project is for research and educational purposes.
 
 If you use this repository in your research, a citation to the paper would be appreciated.
-
