@@ -107,7 +107,7 @@ def _download_model_direct(gdown_module, output_path: Path) -> bool:
 def check_existing_files():
     """Check which files already exist."""
     model_exists = Path("models/best_exp20.pt").exists()
-    images_root = Path("../images")
+    images_root = Path("images")
     # Accept both legacy and nested image layouts.
     images_exist = (
         len(list(images_root.glob("*.png"))) > 0
@@ -172,8 +172,8 @@ def download_via_gdown():
         logger.info("%s", SEPARATOR)
 
         # Create canonical project directories
-        Path("../models").mkdir(exist_ok=True)
-        Path("../images").mkdir(exist_ok=True)
+        Path("models").mkdir(exist_ok=True)
+        Path("images").mkdir(exist_ok=True)
 
         # Download folder
         output_dir = Path("./gdrive_data")
@@ -222,25 +222,25 @@ def download_via_gdown():
             logger.error("❌ Download folder was not created: %s", gdrive_path)
             return False
 
-        models_dir = _find_downloaded_dir(gdrive_path, "../models")
-        images_dir = _find_downloaded_dir(gdrive_path, "../images")
+        models_dir = _find_downloaded_dir(gdrive_path, "models")
+        images_dir = _find_downloaded_dir(gdrive_path, "images")
 
         if models_dir is not None:
-            shutil.copytree(models_dir, Path("../models"), dirs_exist_ok=True)
+            shutil.copytree(models_dir, Path("models"), dirs_exist_ok=True)
         else:
             model_file = next(gdrive_path.glob("**/best_exp20.pt"), None)
             if model_file is not None:
-                shutil.copy(model_file, Path("../models") / "best_exp20.pt")
+                shutil.copy(model_file, Path("models") / "best_exp20.pt")
 
         if images_dir is not None:
-            shutil.copytree(images_dir, Path("../images"), dirs_exist_ok=True)
+            shutil.copytree(images_dir, Path("images"), dirs_exist_ok=True)
 
-        model_target = Path("../models") / "best_exp20.pt"
+        model_target = Path("models") / "best_exp20.pt"
         if not model_target.exists():
             _download_model_direct(gdown, model_target)
 
-        copied_pngs = list(Path("../images").glob("**/*.png"))
-        copied_jsons = list(Path("../images").glob("**/gt/*.json"))
+        copied_pngs = list(Path("images").glob("**/*.png"))
+        copied_jsons = list(Path("images").glob("**/gt/*.json"))
         model_present = model_target.exists()
 
         if model_present:
