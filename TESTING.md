@@ -62,7 +62,7 @@ pytest -s
 See **CLAUDE.md** for complete guide:
 - Project structure
 - Detailed algorithm explanations
-- Development workflow
+- Development pipeline
 - CI/CD setup
 - Troubleshooting
 
