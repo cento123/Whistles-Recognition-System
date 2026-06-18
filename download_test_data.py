@@ -23,12 +23,11 @@ GDRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
     "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing"
 )
-# Optional direct file IDs seen in Drive fallback logs for best_exp20.pt retrieval.
-GDRIVE_MODEL_FILE_IDS = [
-    "1yeI4p1NA4MPB_Pi0IscQy6I7ggOGMfzm",
-    "15OUqkzojLECNXfOcLuQpTQpALF4uD9Zg",
-    "1QfNoSrdBTOMsjws8UCUADCec9g6J-EOZ",
-]
+# Fixed model file URL. Images continue to come from the shared folder URL above.
+GDRIVE_MODEL_FILE_URL = (
+    "https://drive.google.com/file/d/"
+    "1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing"
+)
 # Sanity threshold to avoid accepting HTML/error payloads as model files.
 MIN_MODEL_SIZE_BYTES = 10 * 1024 * 1024
 SEPARATOR = "============================================================"
@@ -64,41 +63,41 @@ def _find_downloaded_dir(download_root: Path, dir_name: str) -> Path | None:
 
 
 def _download_model_direct(gdown_module, output_path: Path) -> bool:
-    """Try direct file-id model download when folder download misses large files."""
-    file_ids = [os.environ.get("WRS_MODEL_FILE_ID", "").strip(), *GDRIVE_MODEL_FILE_IDS]
-    tried_ids = [file_id for file_id in file_ids if file_id]
+    """Download the model from the fixed shared file URL."""
+    model_url = os.environ.get("WRS_MODEL_URL", "").strip() or GDRIVE_MODEL_FILE_URL
 
-    for file_id in tried_ids:
-        logger.info("ℹ️ Trying direct model download via file ID: %s", file_id)
-        try:
-            gdown_module.download(
-                id=file_id,
-                output=str(output_path),
-                quiet=False,
-                use_cookies=False,
-                resume=True,
-            )
-        except TypeError:
-            # Compatibility fallback for older gdown signatures.
-            gdown_module.download(
-                id=file_id,
-                output=str(output_path),
-                quiet=False,
-                use_cookies=False,
-            )
-        except Exception as exc:
-            logger.warning("⚠️ Direct model download failed for ID %s: %s", file_id, exc)
-            continue
+    logger.info("ℹ️ Trying direct model download via shared file URL: %s", model_url)
+    try:
+        gdown_module.download(
+            url=model_url,
+            output=str(output_path),
+            quiet=False,
+            fuzzy=True,
+            use_cookies=False,
+            resume=True,
+        )
+    except TypeError:
+        # Compatibility fallback for older gdown signatures.
+        gdown_module.download(
+            url=model_url,
+            output=str(output_path),
+            quiet=False,
+            fuzzy=True,
+            use_cookies=False,
+        )
+    except Exception as exc:
+        logger.warning("⚠️ Direct model download failed for URL %s: %s", model_url, exc)
+        return False
 
-        if output_path.exists() and output_path.stat().st_size >= MIN_MODEL_SIZE_BYTES:
-            logger.info("✅ Model downloaded directly to %s", output_path)
-            return True
+    if output_path.exists() and output_path.stat().st_size >= MIN_MODEL_SIZE_BYTES:
+        logger.info("✅ Model downloaded directly to %s", output_path)
+        return True
 
-        if output_path.exists() and output_path.stat().st_size < MIN_MODEL_SIZE_BYTES:
-            logger.warning("⚠️ Downloaded model is too small; removing: %s", output_path)
-            output_path.unlink(missing_ok=True)
+    if output_path.exists() and output_path.stat().st_size < MIN_MODEL_SIZE_BYTES:
+        logger.warning("⚠️ Downloaded model is too small; removing: %s", output_path)
+        output_path.unlink(missing_ok=True)
 
-    logger.warning("⚠️ Direct model fallback exhausted without a valid model file.")
+    logger.warning("⚠️ Direct model download did not produce a valid model file.")
     return False
 
 
@@ -143,9 +142,10 @@ def suggest_download():
         return False
 
     logger.info("🔽 Missing files detected. Download from:")
-    logger.info("   %s", GDRIVE_FOLDER_ID)
-    logger.info("📌 Google Drive Link:")
+    logger.info("📌 Images folder:")
     logger.info("   %s", GDRIVE_FOLDER_URL)
+    logger.info("📌 Model file:")
+    logger.info("   %s", GDRIVE_MODEL_FILE_URL)
 
     return True
 
@@ -214,28 +214,20 @@ def download_via_gdown():
             except Exception as exc2:
                 logger.warning("⚠️ ID-based fallback also failed: %s", exc2)
 
-        # Move model and images to correct locations
+        # Move images to the canonical project layout.
         gdrive_path = output_dir
         if not gdrive_path.exists():
             logger.error("❌ Download folder was not created: %s", gdrive_path)
             return False
 
-        models_dir = _find_downloaded_dir(gdrive_path, "models")
         images_dir = _find_downloaded_dir(gdrive_path, "images")
-
-        if models_dir is not None:
-            shutil.copytree(models_dir, Path("models"), dirs_exist_ok=True)
-        else:
-            model_file = next(gdrive_path.glob("**/best_exp20.pt"), None)
-            if model_file is not None:
-                shutil.copy(model_file, Path("models") / "best_exp20.pt")
 
         if images_dir is not None:
             shutil.copytree(images_dir, Path("images"), dirs_exist_ok=True)
 
         model_target = Path("models") / "best_exp20.pt"
-        if not model_target.exists():
-            _download_model_direct(gdown, model_target)
+        model_target.unlink(missing_ok=True)
+        _download_model_direct(gdown, model_target)
 
         copied_pngs = list(Path("images").glob("**/*.png"))
         copied_jsons = list(Path("images").glob("**/gt/*.json"))
@@ -313,6 +305,9 @@ def manual_download_instructions():
         """
 1. Open the Google Drive link:
    https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
+
+   Model direct link:
+   https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing
 
 2. Download these items:
    - best_exp20.pt (model)
