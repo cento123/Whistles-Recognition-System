@@ -115,7 +115,7 @@ whistles-recognition-system
 You can download a sample subset of model/images/GT data used for testing via:
 
 - Scripted mode: `download_test_data.py`
-- Images + GT folder: [GDrive folder](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing "Test data for the repository")
+- Images + GT folder: [GDrive folder](https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing "Test data for the repository")
 - Fixed model file: [best_exp20.pt](https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing "Direct model link")
 
 ```bash
@@ -162,7 +162,7 @@ The spectrogram images in this dataset were generated using the [LT-Acoustic-Fea
 
 - WRSResults.py
 
-  Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the [GDrive link](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing).
+  Example output from the `results_WRSapplication` folder, containing analysis results for the sample subset provided by the [GDrive link](https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing).
 
 <p align="center">
   <img width="500" height="250" alt="image" src="https://github.com/user-attachments/assets/ba9159aa-0bdf-4884-a189-91d28441c501" />

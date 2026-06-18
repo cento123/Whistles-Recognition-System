@@ -18,10 +18,10 @@ import ssl
 from pathlib import Path
 
 # Google Drive folder ID/URL for test data
-GDRIVE_FOLDER_ID = "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU"
+GDRIVE_FOLDER_ID = "17nClyPCdyTOxBIz85m7YOcbxoF9hBcze"
 GDRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
-    "1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing"
+    "17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing"
 )
 # Fixed model file URL. Images continue to come from the shared folder URL above.
 GDRIVE_MODEL_FILE_URL = (
@@ -302,7 +302,7 @@ def manual_download_instructions():
     logger.info(
         """
 1. Open the Google Drive link:
-   https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing
+   https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing
 
    Model direct link:
    https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing

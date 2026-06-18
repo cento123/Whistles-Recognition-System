@@ -47,7 +47,7 @@ pytest tests/integration/test_e2e_local.py::TestE2ELocalPipeline -v --tb=short
 ### Download Test Data
 
 If you don't have local test data, download from:
-[Google Drive Test Data](https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU?usp=sharing)
+[Google Drive Test Data](https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing)
 
 **What to download:**
 - `best_exp20.pt` → Save to `./models/`
@@ -60,7 +60,7 @@ If you don't have local test data, download from:
 pip install gdown
 
 # Download folder (first copy the folder ID)
-gdown --folder https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU -O ./data
+gdown --folder https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze -O ./data
 
 # Option 2: Manual Download
 # 1. Visit the link above

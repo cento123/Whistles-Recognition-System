@@ -65,7 +65,7 @@ python download_test_data.py
 
 ### Manual
 
-1. Visit: https://drive.google.com/drive/folders/1Ncz8UTeSilGqF_aU1uVjpPWdHMSErZqU
+1. Visit: https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze
 2. Download: `best_exp20.pt` and sample images
 3. Create directories:
    ```bash
