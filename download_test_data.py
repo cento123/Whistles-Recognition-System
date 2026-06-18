@@ -72,7 +72,6 @@ def _download_model_direct(gdown_module, output_path: Path) -> bool:
             url=model_url,
             output=str(output_path),
             quiet=False,
-            fuzzy=True,
             use_cookies=False,
             resume=True,
         )
@@ -82,7 +81,6 @@ def _download_model_direct(gdown_module, output_path: Path) -> bool:
             url=model_url,
             output=str(output_path),
             quiet=False,
-            fuzzy=True,
             use_cookies=False,
         )
     except Exception as exc:
