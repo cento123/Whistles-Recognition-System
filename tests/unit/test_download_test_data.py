@@ -78,27 +78,39 @@ class TestSuggestDownload:
 class TestDownloadViaGdown:
     """Tests for gdown download flow."""
 
+    @staticmethod
+    def _fake_download_folder_factory(raise_after_write: bool = False):
+        """Create a flexible fake gdown.download_folder implementation."""
+
+        def _fake_download_folder(*args, **kwargs):
+            output = kwargs.get("output")
+            if output is None:
+                raise AssertionError("Expected 'output' kwarg in fake_download_folder")
+            output_path = Path(output)
+            nested = output_path / "downloaded"
+            (nested / "images" / "test" / "gt").mkdir(parents=True, exist_ok=True)
+            (nested / "images" / "test" / "img1.png").write_text("png1")
+            (nested / "images" / "test" / "gt" / "img1.json").write_text("{}")
+
+            if raise_after_write:
+                raise Exception("Cannot retrieve the public link of the file")
+
+        return _fake_download_folder
+
     def test_download_via_gdown_success(self, tmp_path, monkeypatch):
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.delenv("WRS_MODEL_URL", raising=False)
 
-        def fake_download_folder(url, output, quiet, use_cookies):
-            output_path = Path(output)
-            output_path.mkdir(parents=True, exist_ok=True)
-            nested = output_path / "downloaded"
-            images_test = nested / "images" / "test"
-            images_gt = images_test / "gt"
-            images_gt.mkdir(parents=True, exist_ok=True)
-            (images_test / "img1.png").write_text("png1")
-            (images_test / "img2.png").write_text("png2")
-            (images_gt / "img1.json").write_text("{}")
-
-        def fake_download(url, output, quiet, fuzzy, use_cookies, resume=False):
+        def fake_download(*args, **kwargs):
+            output = kwargs.get("output")
+            if output is None:
+                raise AssertionError("Expected 'output' kwarg in fake_download")
             Path(output).write_text("model")
 
         fake_gdown = types.SimpleNamespace(
-            download_folder=fake_download_folder,
+            download_folder=self._fake_download_folder_factory(),
             download=fake_download,
         )
         fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
@@ -116,18 +128,21 @@ class TestDownloadViaGdown:
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.delenv("WRS_MODEL_URL", raising=False)
 
         calls = {}
 
-        def fake_download_folder(url, output, quiet, use_cookies, remaining_ok=False):
-            calls["url"] = url
+        def fake_download_folder(*args, **kwargs):
+            calls["folder_url"] = kwargs.get("url")
+            output = kwargs.get("output")
             output_path = Path(output)
             nested = output_path / "downloaded"
             (nested / "images" / "test" / "gt").mkdir(parents=True, exist_ok=True)
             (nested / "images" / "test" / "img1.png").write_text("png1")
 
-        def fake_download(url, output, quiet, fuzzy, use_cookies, resume=False):
-            calls["model_url"] = url
+        def fake_download(*args, **kwargs):
+            calls["model_url"] = kwargs.get("url")
+            output = kwargs.get("output")
             Path(output).write_text("model")
 
         fake_gdown = types.SimpleNamespace(
@@ -141,7 +156,7 @@ class TestDownloadViaGdown:
         ok = module.download_via_gdown()
 
         assert ok is True
-        assert calls["url"] == module.GDRIVE_FOLDER_URL
+        assert calls["folder_url"] == module.GDRIVE_FOLDER_URL
         assert calls["model_url"] == module.GDRIVE_MODEL_FILE_URL
 
     def test_download_via_gdown_accepts_partial_gdown_failure_when_assets_exist(
@@ -150,20 +165,14 @@ class TestDownloadViaGdown:
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.delenv("WRS_MODEL_URL", raising=False)
 
-        def fake_download_folder(url, output, quiet, use_cookies, remaining_ok=False):
-            output_path = Path(output)
-            nested = output_path / "downloaded"
-            (nested / "images" / "test" / "gt").mkdir(parents=True, exist_ok=True)
-            (nested / "images" / "test" / "img1.png").write_text("png1")
-            (nested / "images" / "test" / "gt" / "img1.json").write_text("{}")
-            raise Exception("Cannot retrieve the public link of the file")
-
-        def fake_download(url, output, quiet, fuzzy, use_cookies, resume=False):
+        def fake_download(*args, **kwargs):
+            output = kwargs.get("output")
             Path(output).write_text("model")
 
         fake_gdown = types.SimpleNamespace(
-            download_folder=fake_download_folder,
+            download_folder=self._fake_download_folder_factory(raise_after_write=True),
             download=fake_download,
         )
         fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
@@ -183,10 +192,12 @@ class TestDownloadViaGdown:
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.delenv("WRS_MODEL_URL", raising=False)
 
         calls = {"model_downloads": 0}
 
-        def fake_download_folder(url, output, quiet, use_cookies, remaining_ok=False):
+        def fake_download_folder(*args, **kwargs):
+            output = kwargs.get("output")
             output_path = Path(output)
             nested = output_path / "downloaded"
             (nested / "models").mkdir(parents=True, exist_ok=True)
@@ -195,9 +206,10 @@ class TestDownloadViaGdown:
             (nested / "images" / "test" / "img1.png").write_text("png1")
             (nested / "images" / "test" / "gt" / "img1.json").write_text("{}")
 
-        def fake_download(url, output, quiet, fuzzy, use_cookies, resume=False):
+        def fake_download(*args, **kwargs):
             calls["model_downloads"] += 1
-            calls["model_url"] = url
+            calls["model_url"] = kwargs.get("url")
+            output = kwargs.get("output")
             Path(output).write_text("fresh-model-from-fixed-link")
 
         fake_gdown = types.SimpleNamespace(
@@ -236,7 +248,7 @@ class TestDownloadViaGdown:
         module = _reload_module()
         monkeypatch.chdir(tmp_path)
 
-        def fake_download_folder(url, output, quiet, use_cookies):
+        def fake_download_folder(*args, **kwargs):
             raise Exception("CERTIFICATE_VERIFY_FAILED")
 
         fake_gdown = types.SimpleNamespace(download_folder=fake_download_folder)
