@@ -50,6 +50,28 @@ class TestCheckExistingFiles:
         assert images_exist is False
         assert gt_exists is False
 
+    def test_check_existing_files_found_with_root_gt_layout(
+        self, tmp_path, monkeypatch
+    ):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+
+        models_dir = tmp_path / "models"
+        images_dir = tmp_path / "images"
+        gt_dir = images_dir / "gt"
+        models_dir.mkdir()
+        images_dir.mkdir()
+        gt_dir.mkdir(parents=True)
+        (models_dir / "best_exp20.pt").write_text("model")
+        (images_dir / "sample.png").write_text("png")
+        (gt_dir / "sample.json").write_text("json")
+
+        model_exists, images_exist, gt_exists = module.check_existing_files()
+
+        assert model_exists is True
+        assert images_exist is True
+        assert gt_exists is True
+
 
 class TestSuggestDownload:
     """Tests for suggestion behavior."""
@@ -123,6 +145,81 @@ class TestDownloadViaGdown:
         assert (tmp_path / "models" / "best_exp20.pt").exists()
         assert (tmp_path / "images" / "test" / "img1.png").exists()
         assert (tmp_path / "images" / "test" / "gt" / "img1.json").exists()
+
+    def test_download_via_gdown_supports_direct_images_folder_layout(
+        self, tmp_path, monkeypatch
+    ):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.delenv("WRS_MODEL_URL", raising=False)
+
+        def fake_download_folder(*args, **kwargs):
+            output = kwargs.get("output")
+            output_path = Path(output)
+            nested = output_path / "shared_images"
+            (nested / "gt").mkdir(parents=True, exist_ok=True)
+            (nested / "img1.png").write_text("png1")
+            (nested / "gt" / "img1.json").write_text("{}")
+
+        def fake_download(*args, **kwargs):
+            output = kwargs.get("output")
+            Path(output).write_text("model")
+
+        fake_gdown = types.SimpleNamespace(
+            download_folder=fake_download_folder,
+            download=fake_download,
+        )
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
+        monkeypatch.setitem(sys.modules, "gdown", fake_gdown)
+        monkeypatch.setitem(sys.modules, "certifi", fake_certifi)
+
+        ok = module.download_via_gdown()
+
+        assert ok is True
+        assert (tmp_path / "images" / "img1.png").exists()
+        assert (tmp_path / "images" / "gt" / "img1.json").exists()
+
+    def test_download_via_gdown_supports_model_folder_url(self, tmp_path, monkeypatch):
+        module = _reload_module()
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(module, "MIN_MODEL_SIZE_BYTES", 1)
+        monkeypatch.setenv(
+            "WRS_MODEL_URL",
+            "https://drive.google.com/drive/folders/model-folder-id?usp=sharing",
+        )
+
+        def fake_download_folder(*args, **kwargs):
+            url = kwargs.get("url", "")
+            output = kwargs.get("output")
+            output_path = Path(output)
+
+            if "model-folder-id" in url:
+                nested = output_path / "models"
+                nested.mkdir(parents=True, exist_ok=True)
+                (nested / "best_exp20.pt").write_text("model-from-folder")
+                return
+
+            nested = output_path / "downloaded"
+            (nested / "images" / "test" / "gt").mkdir(parents=True, exist_ok=True)
+            (nested / "images" / "test" / "img1.png").write_text("png1")
+            (nested / "images" / "test" / "gt" / "img1.json").write_text("{}")
+
+        fake_gdown = types.SimpleNamespace(
+            download_folder=fake_download_folder,
+            download=lambda *args, **kwargs: None,
+        )
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/tmp/cert.pem")
+        monkeypatch.setitem(sys.modules, "gdown", fake_gdown)
+        monkeypatch.setitem(sys.modules, "certifi", fake_certifi)
+
+        ok = module.download_via_gdown()
+
+        assert ok is True
+        assert (tmp_path / "models" / "best_exp20.pt").exists()
+        assert (
+            tmp_path / "models" / "best_exp20.pt"
+        ).read_text() == "model-from-folder"
 
     def test_download_via_gdown_uses_original_folder_url(self, tmp_path, monkeypatch):
         module = _reload_module()

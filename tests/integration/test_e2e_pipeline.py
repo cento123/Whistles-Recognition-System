@@ -33,6 +33,15 @@ def _find_local_input_images(repo_root: Path) -> list[Path]:
     return sorted(p for p in (repo_root / "images").glob("*.png") if p.is_file())
 
 
+def _find_downloaded_input_images(download_root: Path) -> list[Path]:
+    """Return downloaded input images from supported layouts."""
+    nested = sorted((download_root / "images" / "test").glob("*.png"))
+    if nested:
+        return nested
+
+    return sorted((download_root / "images").glob("*.png"))
+
+
 def _find_bundled_prediction_jsons(repo_root: Path) -> list[Path]:
     """Return bundled detection JSONs that have a matching annotated PNG."""
     bundled_dir = repo_root / "images" / "results"
@@ -166,7 +175,7 @@ def gdrive_files(tmp_path_factory):
             os.chdir(current_dir)
 
         downloaded_model = tmpdir_path / "models" / "best_exp20.pt"
-        downloaded_images = sorted((tmpdir_path / "images" / "test").glob("*.png"))
+        downloaded_images = _find_downloaded_input_images(tmpdir_path)
 
         if download_ok:
             if not model_path.exists() and downloaded_model.exists():

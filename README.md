@@ -126,7 +126,7 @@ The downloader performs multiple fallbacks to improve reliability:
 
 - Downloads images and GT annotations from the shared Google Drive folder (URL mode, then folder-ID mode).
 - Downloads `models/best_exp20.pt` from the fixed direct file URL (supports resume for large files).
-- Keeps GT annotations under `images/test/gt/*.json` so integration tests can validate against ground truth.
+- Keeps GT annotations under `images/test/gt/*.json` or `images/gt/*.json` so integration tests can validate against ground truth.
 
 Optional override for direct model download:
 

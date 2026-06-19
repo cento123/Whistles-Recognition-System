@@ -17,13 +17,12 @@ import shutil
 import ssl
 from pathlib import Path
 
-# Google Drive folder ID/URL for test data
-GDRIVE_FOLDER_ID = "17nClyPCdyTOxBIz85m7YOcbxoF9hBcze"
+# Google Drive folder URL for test images/GT data
 GDRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
     "17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing"
 )
-# Fixed model file URL. Images continue to come from the shared folder URL above.
+# Model URL (can be a direct file link or a shared models folder link).
 GDRIVE_MODEL_FILE_URL = (
     "https://drive.google.com/file/d/"
     "1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing"
@@ -63,18 +62,43 @@ def _find_downloaded_dir(download_root: Path, dir_name: str) -> Path | None:
 
 
 def _download_model_direct(gdown_module, output_path: Path) -> bool:
-    """Download the model from the fixed shared file URL."""
+    """Download the model from a shared URL (file URL or folder URL)."""
     model_url = os.environ.get("WRS_MODEL_URL", "").strip() or GDRIVE_MODEL_FILE_URL
 
-    logger.info("ℹ️ Trying direct model download via shared file URL: %s", model_url)
+    logger.info("ℹ️ Trying model download via shared URL: %s", model_url)
     try:
-        gdown_module.download(
-            url=model_url,
-            output=str(output_path),
-            quiet=False,
-            use_cookies=False,
-            resume=True,
-        )
+        if "/folders/" in model_url:
+            model_tmp = output_path.parent / "_model_gdrive"
+            shutil.rmtree(model_tmp, ignore_errors=True)
+            model_tmp.mkdir(parents=True, exist_ok=True)
+
+            folder_kwargs = {
+                "url": model_url,
+                "output": str(model_tmp),
+                "quiet": False,
+                "use_cookies": False,
+            }
+            try:
+                gdown_module.download_folder(**folder_kwargs, remaining_ok=True)
+            except TypeError:
+                gdown_module.download_folder(**folder_kwargs)
+
+            downloaded_model = next(model_tmp.glob("**/best_exp20.pt"), None)
+            if downloaded_model is None:
+                logger.warning("⚠️ Model folder download did not include best_exp20.pt")
+                shutil.rmtree(model_tmp, ignore_errors=True)
+                return False
+
+            shutil.copy(downloaded_model, output_path)
+            shutil.rmtree(model_tmp, ignore_errors=True)
+        else:
+            gdown_module.download(
+                url=model_url,
+                output=str(output_path),
+                quiet=False,
+                use_cookies=False,
+                resume=True,
+            )
     except TypeError:
         # Compatibility fallback for older gdown signatures.
         gdown_module.download(
@@ -109,7 +133,10 @@ def check_existing_files():
         or len(list(images_root.glob("test/*.png"))) > 0
     )
 
-    gt_exists = len(list(images_root.glob("test/gt/*.json"))) > 0
+    gt_exists = (
+        len(list(images_root.glob("test/gt/*.json"))) > 0
+        or len(list(images_root.glob("gt/*.json"))) > 0
+    )
 
     logger.info("%s", SEPARATOR)
     logger.info("📋 Checking existing files...")
@@ -122,7 +149,8 @@ def check_existing_files():
         "✅ Found" if images_exist else "❌ Missing",
     )
     logger.info(
-        f"GT JSON (./images/test/gt/*.json):  {'✅ Found' if gt_exists else '❌ Missing'}"
+        "GT JSON (./images/test/gt/*.json or ./images/gt/*.json):  %s",
+        "✅ Found" if gt_exists else "❌ Missing",
     )
 
     # Keep backward-compatible semantics for callers/tests: images_exist means PNG assets are present.
@@ -142,7 +170,7 @@ def suggest_download():
     logger.info("🔽 Missing files detected. Download from:")
     logger.info("📌 Images folder:")
     logger.info("   %s", GDRIVE_FOLDER_URL)
-    logger.info("📌 Model file:")
+    logger.info("📌 Model URL (file or folder):")
     logger.info("   %s", GDRIVE_MODEL_FILE_URL)
 
     return True
@@ -192,25 +220,7 @@ def download_via_gdown():
                 gdown.download_folder(**download_kwargs)
         except Exception as exc:
             download_error = exc
-            logger.warning(
-                "⚠️ gdown URL-based download failed; retrying with folder ID: %s", exc
-            )
-            # Fallback: try folder download using the raw ID instead of the full URL.
-            try:
-                id_kwargs = {
-                    "id": GDRIVE_FOLDER_ID,
-                    "output": str(output_dir),
-                    "quiet": False,
-                    "use_cookies": False,
-                }
-                try:
-                    gdown.download_folder(**id_kwargs, remaining_ok=True)
-                except TypeError:
-                    gdown.download_folder(**id_kwargs)
-                download_error = None  # Fallback succeeded.
-                logger.info("✅ Folder download succeeded via ID fallback.")
-            except Exception as exc2:
-                logger.warning("⚠️ ID-based fallback also failed: %s", exc2)
+            logger.warning("⚠️ gdown URL-based image download failed: %s", exc)
 
         # Move images to the canonical project layout.
         gdrive_path = output_dir
@@ -222,6 +232,17 @@ def download_via_gdown():
 
         if images_dir is not None:
             shutil.copytree(images_dir, Path("images"), dirs_exist_ok=True)
+        else:
+            # Some shared links point directly to the image files instead of an 'images/' folder.
+            downloaded_pngs = list(gdrive_path.glob("**/*.png"))
+            if downloaded_pngs:
+                gt_target = Path("images") / "gt"
+                gt_target.mkdir(parents=True, exist_ok=True)
+                for png_path in downloaded_pngs:
+                    shutil.copy(png_path, Path("images") / png_path.name)
+
+                for gt_json in gdrive_path.glob("**/gt/*.json"):
+                    shutil.copy(gt_json, gt_target / gt_json.name)
 
         model_target = Path("models") / "best_exp20.pt"
         model_target.unlink(missing_ok=True)
@@ -304,18 +325,18 @@ def manual_download_instructions():
 1. Open the Google Drive link:
    https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing
 
-   Model direct link:
+   Model link (file or shared models folder):
    https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing
 
 2. Download these items:
    - best_exp20.pt (model)
    - Sample images (*.png files)
-   - Ground-truth JSON files under images/test/gt/
+   - Ground-truth JSON files under images/test/gt/ or images/gt/
 
 3. Place files in your project:
    ./models/best_exp20.pt
-   ./images/test/*.png
-   ./images/test/gt/*.json
+   ./images/*.png or ./images/test/*.png
+   ./images/gt/*.json or ./images/test/gt/*.json
 
 4. Run tests:
    pytest tests/integration/test_e2e_local.py -v -s
