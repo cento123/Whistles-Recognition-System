@@ -95,7 +95,7 @@ whistles-recognition-system
 │   ├── config.yaml           # Configuration file for WRSresults.py
 │   └── utils.py              # Utility functions used by the scripts
 │
-├── download_test_data.py    # Script to download from drive the test data (images, GT annotations, and model weights) for integration tests
+├── download_test_data.py    # Script to download from drive the test data (images and GT annotations) for integration tests
 │
 ├── models/                   # Directory to store trained WRS model weights (.pt file)
 │
@@ -126,7 +126,7 @@ The downloader behavior:
 
 - Downloads images and GT annotations from the shared Google Drive folder (URL mode only).
 - Keeps GT annotations under `images/test/gt/*.json` or `images/gt/*.json` so integration tests can validate against ground truth.
-- Does not download the model; it must exist locally at `models/best_exp20.pt`.
+- Doesn't need to download the model; it must exist locally at `models/best_exp20.pt`.
 
 ## Testing and CI
 
