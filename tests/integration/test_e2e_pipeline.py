@@ -134,7 +134,7 @@ def gdrive_files(tmp_path_factory):
     Strategy:
     - Prefer local model/image assets when available.
     - If no live model is available, fall back to bundled repo detections.
-    - Download only missing assets via download_test_data when needed.
+    - Download only missing images via download_test_data when needed.
     - Keep strict failures when neither live nor bundled assets can satisfy tests.
     """
     tmpdir_path = tmp_path_factory.mktemp("e2e_gdrive")
@@ -166,7 +166,7 @@ def gdrive_files(tmp_path_factory):
             "prediction_jsons": bundled_prediction_jsons,
         }
 
-    if not model_path.exists() or not image_path.exists():
+    if not image_path.exists():
         current_dir = Path.cwd()
         try:
             os.chdir(tmpdir_path)
@@ -174,12 +174,9 @@ def gdrive_files(tmp_path_factory):
         finally:
             os.chdir(current_dir)
 
-        downloaded_model = tmpdir_path / "models" / "best_exp20.pt"
         downloaded_images = _find_downloaded_input_images(tmpdir_path)
 
         if download_ok:
-            if not model_path.exists() and downloaded_model.exists():
-                shutil.copy(downloaded_model, model_path)
             if not image_path.exists() and downloaded_images:
                 shutil.copy(next(iter(downloaded_images)), image_path)
 

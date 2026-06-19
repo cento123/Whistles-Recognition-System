@@ -112,28 +112,21 @@ whistles-recognition-system
 
 ## Images, labels, and model test data
 
-You can download a sample subset of model/images/GT data used for testing via:
+You can download a sample subset of images/GT data used for testing via:
 
 - Scripted mode: `download_test_data.py`
 - Images + GT folder: [GDrive folder](https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing "Test data for the repository")
-- Fixed model file: [best_exp20.pt](https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing "Direct model link")
+- Model is bundled in the repository at `models/best_exp20.pt`
 
 ```bash
 python download_test_data.py --all
 ```
 
-The downloader performs multiple fallbacks to improve reliability:
+The downloader behavior:
 
-- Downloads images and GT annotations from the shared Google Drive folder (URL mode, then folder-ID mode).
-- Downloads `models/best_exp20.pt` from the fixed direct file URL (supports resume for large files).
+- Downloads images and GT annotations from the shared Google Drive folder (URL mode only).
 - Keeps GT annotations under `images/test/gt/*.json` or `images/gt/*.json` so integration tests can validate against ground truth.
-
-Optional override for direct model download:
-
-```bash
-$env:WRS_MODEL_URL="https://drive.google.com/file/d/<your_file_id>/view?usp=sharing"
-python download_test_data.py --all
-```
+- Does not download the model; it must exist locally at `models/best_exp20.pt`.
 
 ## Testing and CI
 

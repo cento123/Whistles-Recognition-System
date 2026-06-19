@@ -50,8 +50,11 @@ If you don't have local test data, download from:
 [Google Drive Test Data](https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing)
 
 **What to download:**
-- `best_exp20.pt` → Save to `./models/`
 - Sample images → Save to `./images/`
+- GT JSON files (if present) → Save to `./images/gt/` or `./images/test/gt/`
+
+Model note:
+- `best_exp20.pt` is expected locally in `./models/` (repository asset).
 
 ### Manual Download Steps
 
@@ -65,8 +68,8 @@ gdown --folder https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxo
 # Option 2: Manual Download
 # 1. Visit the link above
 # 2. Download files to local directories:
-#    - models/best_exp20.pt
 #    - images/*.png
+#    - images/gt/*.json (or images/test/gt/*.json)
 ```
 
 ---
@@ -160,13 +163,13 @@ After running the complete workflow, you should see:
 
 ## 🔧 Troubleshooting
 
-### Test Skipped: "Model not found"
+### Test Failed: "Model not found"
 ```bash
-# Solution: Download model from Drive or check path
+# Solution: Ensure repo model exists and check path
 ls -la models/best_exp20.pt
 ```
 
-### Test Skipped: "No test images"
+### Test Failed: "No test images"
 ```bash
 # Solution: Download test images from Drive or add to ./images/
 ls -la images/

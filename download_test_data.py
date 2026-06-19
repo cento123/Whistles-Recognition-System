@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Download test data from Google Drive for WRS integration tests.
-This script downloads the model and sample images needed to run tests.
+This script downloads sample images and GT files needed to run tests.
 
 Usage:
     python download_test_data.py              # Interactive mode
-    python download_test_data.py --model      # Only download model
+    python download_test_data.py --model      # Check local model presence
     python download_test_data.py --images     # Only download images
-    python download_test_data.py --all        # Download everything
+    python download_test_data.py --all        # Download images + GT
 """
 
 import argparse
@@ -22,13 +22,6 @@ GDRIVE_FOLDER_URL = (
     "https://drive.google.com/drive/folders/"
     "17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing"
 )
-# Model URL (can be a direct file link or a shared models folder link).
-GDRIVE_MODEL_FILE_URL = (
-    "https://drive.google.com/file/d/"
-    "1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing"
-)
-# Sanity threshold to avoid accepting HTML/error payloads as model files.
-MIN_MODEL_SIZE_BYTES = 10 * 1024 * 1024
 SEPARATOR = "============================================================"
 logger = logging.getLogger(__name__)
 
@@ -59,68 +52,6 @@ def _find_downloaded_dir(download_root: Path, dir_name: str) -> Path | None:
     return next(
         (path for path in download_root.glob(f"**/{dir_name}") if path.is_dir()), None
     )
-
-
-def _download_model_direct(gdown_module, output_path: Path) -> bool:
-    """Download the model from a shared URL (file URL or folder URL)."""
-    model_url = os.environ.get("WRS_MODEL_URL", "").strip() or GDRIVE_MODEL_FILE_URL
-
-    logger.info("ℹ️ Trying model download via shared URL: %s", model_url)
-    try:
-        if "/folders/" in model_url:
-            model_tmp = output_path.parent / "_model_gdrive"
-            shutil.rmtree(model_tmp, ignore_errors=True)
-            model_tmp.mkdir(parents=True, exist_ok=True)
-
-            folder_kwargs = {
-                "url": model_url,
-                "output": str(model_tmp),
-                "quiet": False,
-                "use_cookies": False,
-            }
-            try:
-                gdown_module.download_folder(**folder_kwargs, remaining_ok=True)
-            except TypeError:
-                gdown_module.download_folder(**folder_kwargs)
-
-            downloaded_model = next(model_tmp.glob("**/best_exp20.pt"), None)
-            if downloaded_model is None:
-                logger.warning("⚠️ Model folder download did not include best_exp20.pt")
-                shutil.rmtree(model_tmp, ignore_errors=True)
-                return False
-
-            shutil.copy(downloaded_model, output_path)
-            shutil.rmtree(model_tmp, ignore_errors=True)
-        else:
-            gdown_module.download(
-                url=model_url,
-                output=str(output_path),
-                quiet=False,
-                use_cookies=False,
-                resume=True,
-            )
-    except TypeError:
-        # Compatibility fallback for older gdown signatures.
-        gdown_module.download(
-            url=model_url,
-            output=str(output_path),
-            quiet=False,
-            use_cookies=False,
-        )
-    except Exception as exc:
-        logger.warning("⚠️ Direct model download failed for URL %s: %s", model_url, exc)
-        return False
-
-    if output_path.exists() and output_path.stat().st_size >= MIN_MODEL_SIZE_BYTES:
-        logger.info("✅ Model downloaded directly to %s", output_path)
-        return True
-
-    if output_path.exists() and output_path.stat().st_size < MIN_MODEL_SIZE_BYTES:
-        logger.warning("⚠️ Downloaded model is too small; removing: %s", output_path)
-        output_path.unlink(missing_ok=True)
-
-    logger.warning("⚠️ Direct model download did not produce a valid model file.")
-    return False
 
 
 def check_existing_files():
@@ -170,8 +101,8 @@ def suggest_download():
     logger.info("🔽 Missing files detected. Download from:")
     logger.info("📌 Images folder:")
     logger.info("   %s", GDRIVE_FOLDER_URL)
-    logger.info("📌 Model URL (file or folder):")
-    logger.info("   %s", GDRIVE_MODEL_FILE_URL)
+    logger.info("📌 Model:")
+    logger.info("   Model is expected locally at ./models/best_exp20.pt")
 
     return True
 
@@ -195,8 +126,7 @@ def download_via_gdown():
         logger.info("📥 Downloading via gdown...")
         logger.info("%s", SEPARATOR)
 
-        # Create canonical project directories
-        Path("models").mkdir(exist_ok=True)
+        # Create canonical project directory for image assets
         Path("images").mkdir(exist_ok=True)
 
         # Download folder
@@ -244,27 +174,22 @@ def download_via_gdown():
                 for gt_json in gdrive_path.glob("**/gt/*.json"):
                     shutil.copy(gt_json, gt_target / gt_json.name)
 
-        model_target = Path("models") / "best_exp20.pt"
-        model_target.unlink(missing_ok=True)
-        _download_model_direct(gdown, model_target)
-
         copied_pngs = list(Path("images").glob("**/*.png"))
         copied_jsons = list(Path("images").glob("**/gt/*.json"))
-        model_present = model_target.exists()
-
-        if model_present:
-            logger.info("✅ Model copied to ./models/")
-        else:
-            logger.error("❌ best_exp20.pt was not found in downloaded data")
+        model_present = Path("models/best_exp20.pt").exists()
+        if not model_present:
+            logger.warning(
+                "⚠️ Local model not found at ./models/best_exp20.pt (this script downloads images only)"
+            )
 
         logger.info("✅ %s images copied to ./images/", len(copied_pngs))
         logger.info("✅ %s GT JSON files copied to ./images/", len(copied_jsons))
 
-        if not model_present or not copied_pngs:
+        if not copied_pngs:
             if download_error is not None:
                 logger.error("❌ Download failed: %s", download_error)
             logger.error(
-                "❌ Downloaded data is incomplete; required model or images are missing"
+                "❌ Downloaded data is incomplete; required images are missing"
             )
             shutil.rmtree(gdrive_path, ignore_errors=True)
             return False
@@ -325,20 +250,18 @@ def manual_download_instructions():
 1. Open the Google Drive link:
    https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze?usp=sharing
 
-   Model link (file or shared models folder):
-   https://drive.google.com/file/d/1CbqSxHn27eQbUGtn4RzagpNRy6_d7Fgu/view?usp=sharing
-
 2. Download these items:
-   - best_exp20.pt (model)
    - Sample images (*.png files)
    - Ground-truth JSON files under images/test/gt/ or images/gt/
 
 3. Place files in your project:
-   ./models/best_exp20.pt
    ./images/*.png or ./images/test/*.png
    ./images/gt/*.json or ./images/test/gt/*.json
 
-4. Run tests:
+4. Ensure model exists locally:
+   ./models/best_exp20.pt
+
+5. Run tests:
    pytest tests/integration/test_e2e_local.py -v -s
 """
     )
@@ -350,12 +273,12 @@ def main():
         description="Download test data for WRS integration tests"
     )
     parser.add_argument(
-        "--model", action="store_true", help="Check/download model only"
+        "--model", action="store_true", help="Check model presence only"
     )
     parser.add_argument(
         "--images", action="store_true", help="Check/download images only"
     )
-    parser.add_argument("--all", action="store_true", help="Download everything")
+    parser.add_argument("--all", action="store_true", help="Download images + GT")
     parser.add_argument(
         "--manual", action="store_true", help="Show manual instructions"
     )
@@ -374,6 +297,13 @@ def main():
 
     if args.manual:
         manual_download_instructions()
+        return
+
+    if args.model and not args.images and not args.all:
+        if model_exists:
+            logger.info("✅ Local model found at ./models/best_exp20.pt")
+        else:
+            logger.warning("⚠️ Local model missing at ./models/best_exp20.pt")
         return
 
     if model_exists and images_exist:

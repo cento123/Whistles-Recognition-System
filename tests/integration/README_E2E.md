@@ -58,15 +58,15 @@ python download_test_data.py
 
 # The script will:
 # 1. Download from Google Drive
-# 2. Copy best_exp20.pt to ./models/
-# 3. Copy images to ./images/
+# 2. Copy images/GT to ./images/
+# 3. Keep local model at ./models/best_exp20.pt (repo asset)
 # 4. Cleanup temp files
 ```
 
 ### Manual
 
 1. Visit: https://drive.google.com/drive/folders/17nClyPCdyTOxBIz85m7YOcbxoF9hBcze
-2. Download: `best_exp20.pt` and sample images
+2. Download: sample images (+ GT JSONs if available)
 3. Create directories:
    ```bash
    mkdir -p models images
@@ -75,6 +75,7 @@ python download_test_data.py
    ```
    ./models/best_exp20.pt
    ./images/*.png
+   ./images/gt/*.json or ./images/test/gt/*.json
    ```
 
 ---
@@ -199,9 +200,9 @@ After running tests, you should have:
 
 | Problem | Solution |
 |---------|----------|
-| "Model not found" | Run: `python download_test_data.py` |
+| "Model not found" | Ensure `./models/best_exp20.pt` exists in the repo |
 | "No test images" | Run: `python download_test_data.py` |
-| Test skipped | Check models & images folders exist |
+| Test failed due to missing assets | Check models/images folders and rerun downloader for images |
 | CSV empty | Whistles not detected - try lower `--conf` |
 | Import errors | Run: `pip install -r requirements-test.txt` |
 | SSL certificate verify failed | Upgrade `certifi`, set `REQUESTS_CA_BUNDLE`, or use manual download mode |
