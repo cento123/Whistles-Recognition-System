@@ -7,7 +7,7 @@ type: software
 
 authors:
   - given-names: Vicent
-    family-names: Aaria-Avaria
+    family-names: Avaria-Avaria
   - given-names: Dídac
     family-names: Diego-Tortosa
     orcid: https://orcid.org/0000-0001-5546-3748
@@ -29,7 +29,7 @@ preferred-citation:
   type: article
 
   authors:
-    - family-names: Aaria-Avaria
+    - family-names: Avaria-Avaria
       given-names: Vicent
 
     - family-names: Diego-Tortosa
