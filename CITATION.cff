@@ -1,0 +1,59 @@
+cff-version: 1.2.0
+title: Whistles Recognition System (WRS) Model Testing
+message: >-
+  If you use this repository or the methodology implemented
+  here, please cite the associated research article.
+type: software
+
+authors:
+  - given-names: Vicent
+    family-names: Aaria-Avaria
+  - given-names: Dídac
+    family-names: Diego-Tortosa
+    orcid: https://orcid.org/0000-0001-5546-3748
+
+repository-code: https://github.com/cento123/Whistles-Recognition-System
+
+keywords:
+  - passive acoustic monitoring
+  - dolphin whistles
+  - You Only Look Once v8
+  - deep learning
+  - bioacoustics
+  - automatic detection
+
+license: Apache-2.0
+date-released: 2026-02-02
+
+preferred-citation:
+  type: article
+
+  authors:
+    - family-names: Aaria-Avaria
+      given-names: Vicent
+
+    - family-names: Diego-Tortosa
+      given-names: Dídac
+      orcid: https://orcid.org/0000-0001-5546-3748
+
+    - family-names: Gallardo
+      given-names: Carles
+      orcid: https://orcid.org/0009-0008-6254-5934
+
+    - family-names: Morell-Monzó
+      given-names: Sergio
+      orcid: https://orcid.org/0000-0001-8883-2618
+
+    - family-names: Quiroz-Rangel
+      given-names: Carlos A.
+      orcid: https://orcid.org/0009-0002-3446-8747
+
+  title: Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms
+  journal: Bioacoustics
+  year: 2026
+  volume: 35
+  issue: 2
+  doi: 10.1080/09524622.2025.2612276
+  issn: 2165-0586
+  publisher: Informa UK Limited
+  pages: "148-174"
