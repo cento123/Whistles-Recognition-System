@@ -1,6 +1,6 @@
 # Test dependencies for unit, integration, validation, and type-check runs.
 # Includes runtime requirements plus test-only tooling.
--r requirements.txt
+-r ../requirements.txt
 
 # Test runner and coverage
 pytest>=7.4.0
