@@ -84,6 +84,7 @@ whistles-recognition-system
 ├── .pre-commit-config.yaml    # Pre-commit hooks configuration file
 ├── pyproject.toml             # Project configuration and dependency management
 ├── requirements.txt           # Python dependencies for the project
+├── CITATION.cff               # Citation information and metadata for citing the project
 │
 ├── scripts/
 │   ├── __init__.py           # Initialization file for the scripts package
