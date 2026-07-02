@@ -13,6 +13,9 @@ authors:
     orcid: https://orcid.org/0000-0001-5546-3748
 
 repository-code: https://github.com/cento123/Whistles-Recognition-System
+doi: 10.5281/zenodo.21128072
+date-released: 2026-02-02
+license: AGPL-3.0
 
 keywords:
   - passive acoustic monitoring
