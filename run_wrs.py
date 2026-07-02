@@ -7,7 +7,7 @@ Usage:
 
 import logging
 import sys
-
+### Bad comment to remove
 logger = logging.getLogger(__name__)
 
 
