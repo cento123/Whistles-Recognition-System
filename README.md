@@ -1,11 +1,20 @@
-# Whistles Recognition System (WRS) Model Testing
+<div align="center">
+ <h1>Whistles Recognition System (WRS) Model Testing</h1>
+ <p>
+    <a href="https://github.com/cento123/Whistles-Recognition-System"><img src="https://img.shields.io/badge/release-v1.0.0-red" alt="Latest Release"/></a>
+    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python 3.12+"/></a>
+    <a href="LICENSE"> <img src="https://img.shields.io/badge/license-AGPL--3.0-lightgrey" alt="AGPL-3.0 License"/></a>
+    <a href="https://doi.org/10.1080/09524622.2025.2612276"><img src="https://img.shields.io/badge/Article-DOI-green" alt="Article DOI"/></a>
+    <a href="https://doi.org/10.5281/zenodo.21128072"><img src="https://img.shields.io/badge/Software-DOI-green" alt="Software DOI"/></a>
+  </p>
+</div>
 
 This project provides scripts to test a WRS model described in the paper:
 **Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms**.
 
 Avaria-Avaria, V.; Diego-Tortosa, D.; Gallardo, C.; Morell-Monzó, S.; & Quiroz-Rangel, C. A. (2026). *Exploring You Only Look Once v8 for automatic detection of dolphin whistles in spectrograms*. Bioacoustics, 35(2), 148–174. https://doi.org/10.1080/09524622.2025.2612276
 
-If you use this repository in your research, a citation to this article would be appreciated.
+If you use this repository in your research, a citation to this article would be appreciated. If you use a specific archived release, please also cite the corresponding [Zenodo software DOI](https://www.doi.org/10.5281/zenodo.21128072).
 
 It is designed for whistle recognition tasks and includes functionality to evaluate model performance and visualize
 detection results.
